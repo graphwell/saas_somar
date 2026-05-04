@@ -71,12 +71,8 @@ export default function WhatsAppPage() {
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || 'Erro ao criar instância');
       setCurrentInstance(d.instanceName);
-      // Evolution API já retorna o QR code na criação da instância
-      if (d.qrcode) {
-        setQrData({ qrcode: d.qrcode, status: d.status });
-      } else {
-        await fetchQr(d.instanceName);
-      }
+      // Após a criação da instância (no estado close), busca o QR Code (iniciando a conexão)
+      await fetchQr(d.instanceName);
     } catch (e: any) {
       setError(e.message || 'Erro inesperado ao criar instância');
     } finally {

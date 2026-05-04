@@ -51,18 +51,19 @@ export async function POST(req: Request) {
     // Sanitiza o nome: apenas letras, números, hífens e underscores
     const safeName = `${instanceName.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '-')}-${userId.slice(0, 8)}`;
 
-    const webhookUrl = `${process.env.NEXTAUTH_URL || ''}/api/whatsapp/webhook/evolution`;
+    const protocol = req.headers.get('x-forwarded-proto') || 'https';
+    const host = req.headers.get('host');
+    const webhookUrl = `${protocol}://${host}/api/whatsapp/webhook/evolution`;
 
     const body = {
       instanceName: safeName,
       token: safeName, // o token é o próprio nome da instância na Evolution v2
-      qrcode: true,
       integration: 'WHATSAPP-BAILEYS',
       webhook: {
         enabled: true,
         url: webhookUrl,
-        events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE'],
-        byEvents: true,
+        events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE', 'QRCODE_UPDATED'],
+        byEvents: false,
         base64: false
       },
       settings: {
