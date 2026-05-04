@@ -92,6 +92,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: data.message || 'Erro ao criar instância' }, { status: 400 });
     }
 
+    // Salvar a instância no banco de dados
+    const { prisma } = await import('@/lib/prisma');
+    await prisma.whatsAppInstance.upsert({
+      where: { instanceKey: safeName },
+      update: { userId, status: 'disconnected' },
+      create: {
+        userId,
+        name: instanceName.trim(),
+        provider: 'evolution',
+        instanceKey: safeName,
+        token: safeName,
+        status: 'disconnected',
+      }
+    });
+
     return NextResponse.json({
       instanceName: safeName,
       status: data.instance?.state || 'created',

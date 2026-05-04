@@ -24,7 +24,8 @@ export async function GET() {
     return NextResponse.json({
       plan: subscription?.planType || 'none',
       status: instance?.status || 'disconnected',
-      messagesSentToday: subscription?.messagesUsed || 0, // mapeado para messagesUsed do plano
+      instanceKey: instance?.instanceKey || null,
+      messagesSentToday: subscription?.messagesUsed || 0,
       limit: subscription?.messagesLimit || null,
       needsReconnect: instance?.status === 'disconnected',
       expiresAt: subscription?.currentPeriodEnd,

@@ -14,9 +14,12 @@ export default function WhatsAppPage() {
   const [status, setStatus] = useState<any>(null);
   const [qrData, setQrData] = useState<{ qrcode: string | null; status: string } | null>(null);
   const [instanceName, setInstanceName] = useState('');
+  const [syncInstanceKey, setSyncInstanceKey] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [isLoadingQr, setIsLoadingQr] = useState(false);
   const [showNewModal, setShowNewModal] = useState(false);
+  const [showSyncModal, setShowSyncModal] = useState(false);
   const [error, setError] = useState('');
   const [currentInstance, setCurrentInstance] = useState<string | null>(null);
 
@@ -54,6 +57,29 @@ export default function WhatsAppPage() {
     }
   }, []);
 
+  const handleSync = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setIsSyncing(true);
+    try {
+      const r = await fetch('/api/whatsapp/evolution/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ instanceKey: syncInstanceKey.trim() })
+      });
+      const d = await r.json();
+      if (!r.ok) { setError(d.error || 'Erro ao sincronizar'); return; }
+      setCurrentInstance(syncInstanceKey.trim());
+      setShowSyncModal(false);
+      setSyncInstanceKey('');
+      fetchQr(syncInstanceKey.trim());
+    } catch {
+      setError('Erro inesperado ao sincronizar instância');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -87,9 +113,14 @@ export default function WhatsAppPage() {
           <p className="text-[#9CA3AF] mt-1">Conecte seu WhatsApp para a IA começar a responder.</p>
         </div>
         {!currentInstance && (
-          <Button onClick={() => setShowNewModal(true)} className="gap-2 font-bold">
-            <Plus size={16} /> Nova Instância
-          </Button>
+          <div className="flex gap-3">
+            <Button variant="ghost" onClick={() => setShowSyncModal(true)} className="gap-2">
+              <RefreshCcw size={16} /> Vincular Existente
+            </Button>
+            <Button onClick={() => setShowNewModal(true)} className="gap-2 font-bold">
+              <Plus size={16} /> Nova Instância
+            </Button>
+          </div>
         )}
       </div>
 
@@ -250,6 +281,51 @@ export default function WhatsAppPage() {
                 </Button>
                 <Button type="submit" className="flex-1 font-bold" isLoading={isCreating}>
                   Criar e Gerar QR
+                </Button>
+              </div>
+            </form>
+          </Card>
+        </div>
+      )}
+
+      {/* Modal Vincular Instância Existente */}
+      {showSyncModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 animate-fade-in">
+          <div className="absolute inset-0 bg-[#0A0F1E]/80 backdrop-blur-sm" onClick={() => setShowSyncModal(false)} />
+          <Card className="relative w-full max-w-md p-0 border-white/10 overflow-hidden shadow-2xl">
+            <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-[#6C5DD3]/10 flex items-center justify-center text-[#6C5DD3]">
+                  <RefreshCcw size={20} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-white">Vincular Instância Existente</h3>
+                  <p className="text-[10px] text-[#6B7280] uppercase font-bold tracking-widest">Evolution API</p>
+                </div>
+              </div>
+              <button onClick={() => setShowSyncModal(false)} className="p-2 rounded-full hover:bg-white/5 text-[#6B7280]">
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSync} className="p-8 space-y-6">
+              <Input
+                label="Nome da Instância (instanceKey)"
+                placeholder="Ex: francisco-94386546"
+                value={syncInstanceKey}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSyncInstanceKey(e.target.value)}
+                required
+              />
+              <p className="text-[11px] text-[#6B7280] leading-relaxed -mt-3">
+                Digite exatamente o nome da instância que já existe na Evolution API.
+              </p>
+              {error && <p className="text-red-400 text-xs">{error}</p>}
+              <div className="flex gap-3 pt-2">
+                <Button type="button" variant="ghost" className="flex-1" onClick={() => setShowSyncModal(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit" className="flex-1 font-bold" isLoading={isSyncing}>
+                  Vincular e Gerar QR
                 </Button>
               </div>
             </form>
