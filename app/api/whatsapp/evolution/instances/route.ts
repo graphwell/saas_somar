@@ -109,7 +109,11 @@ export async function POST(req: Request) {
 
     if (!res.ok) {
       console.error('EVOLUTION_CREATE_ERROR:', data);
-      return NextResponse.json({ error: data.response?.message || data.message || 'Erro ao criar instância' }, { status: 400 });
+      return NextResponse.json({ 
+        error: data.response?.message || data.message || 'Erro ao criar instância',
+        debug: data,
+        status: res.status
+      }, { status: 400 });
     }
 
     // Salvar a instância no banco de dados
