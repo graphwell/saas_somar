@@ -1,0 +1,201 @@
+{
+  "name": "Somar.IA - Master Workflow (AUTOMÁTICO)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "somar-ia-saas",
+        "options": {}
+      },
+      "id": "webhook-nextjs",
+      "name": "Webhook Somar",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [200, 400]
+    },
+    {
+      "parameters": {
+        "model": "gemini-1.5-flash",
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "id": "gemini-model",
+      "name": "Google Gemini",
+      "type": "n8n-nodes-base.googleGeminiChatModel",
+      "typeVersion": 1,
+      "position": [450, 600],
+      "credentials": {
+        "googleGeminiChatApi": {
+          "id": "YOUR_GEMINI_CRED_ID"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionId": "={{ $node[\"Webhook Somar\"].json[\"customerPhone\"] }}",
+        "contextWindowLength": 10
+      },
+      "id": "memory-context",
+      "name": "Context Memory",
+      "type": "n8n-nodes-base.windowBufferMemory",
+      "typeVersion": 1,
+      "position": [450, 200]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $node[\"Webhook Somar\"].json[\"message\"] }}",
+        "options": {
+          "systemMessage": "=Você é {{ $node[\"Webhook Somar\"].json[\"agentConfig\"][\"nome\"] }}. Seu tom de voz é {{ $node[\"Webhook Somar\"].json[\"agentConfig\"][\"tom\"] }}. \n\nInstruções: {{ $node[\"Webhook Somar\"].json[\"agentConfig\"][\"servicos\"] }}\n\nRegras: {{ $node[\"Webhook Somar\"].json[\"agentConfig\"][\"regras\"] }}"
+        }
+      },
+      "id": "ai-agent-v2",
+      "name": "Agente Somar v2",
+      "type": "n8n-nodes-base.aiAgent",
+      "typeVersion": 1,
+      "position": [450, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $node[\"Webhook Somar\"].json[\"instance\"][\"provider\"] }}",
+              "value2": "ultramsg"
+            }
+          ]
+        }
+      },
+      "id": "provider-router",
+      "name": "Router (Trial/Prod)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [700, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.ultramsg.com/{{ $node[\"Webhook Somar\"].json[\"instance\"][\"instanceId\"] }}/messages/chat",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "token",
+              "value": "={{ $node[\"Webhook Somar\"].json[\"instance\"][\"token\"] }}"
+            },
+            {
+              "name": "to",
+              "value": "={{ $node[\"Webhook Somar\"].json[\"customerPhone\"] }}"
+            },
+            {
+              "name": "body",
+              "value": "={{ $node[\"Agente Somar v2\"].json[\"output\"] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ultramsg-output",
+      "name": "UltraMsg (Trial)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [950, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $node[\"Webhook Somar\"].json[\"instance\"][\"providerUrl\"] || 'https://wasenderapi.com/api/send' }}",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $node[\"Webhook Somar\"].json[\"instance\"][\"token\"] }}"
+            },
+            {
+              "name": "number",
+              "value": "={{ $node[\"Webhook Somar\"].json[\"customerPhone\"] }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ $node[\"Agente Somar v2\"].json[\"output\"] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wasender-output",
+      "name": "WasenderAPI (Prod)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [950, 500]
+    }
+  ],
+  "connections": {
+    "Webhook Somar": {
+      "main": [
+        [
+          {
+            "node": "Agente Somar v2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agente Somar v2",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Context Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Agente Somar v2",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agente Somar v2": {
+      "main": [
+        [
+          {
+            "node": "Router (Trial/Prod)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Router (Trial/Prod)": {
+      "main": [
+        [
+          {
+            "node": "UltraMsg (Trial)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WasenderAPI (Prod)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "active": true
+}

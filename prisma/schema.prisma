@@ -1,0 +1,173 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+model User {
+  id       String   @id @default(uuid())
+  name     String
+  email    String   @unique
+  password String // Senha (substituindo o "senha" anterior para manter inglês)
+  role     UserRole @default(USER)
+
+  // Relacionamentos Multi-tenant (O Usuário é o dono de tudo abaixo)
+  subscription Subscription?
+  instances    WhatsAppInstance[]
+  agents       Agent[]
+  customers    Customer[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ==========================================
+// PILAR: MONETIZAÇÃO E LIMITES
+// ==========================================
+model Subscription {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  stripeCustomerId     String? @unique
+  stripeSubscriptionId String? @unique
+
+  planType String @default("trial") // trial, starter, pro
+  status   String @default("active") // active, past_due, canceled
+
+  messagesLimit Int @default(100)
+  messagesUsed  Int @default(0)
+
+  tokensLimit   Int @default(100000) // Default token limit
+  tokensUsed    Int @default(0)
+
+  currentPeriodStart DateTime  @default(now())
+  currentPeriodEnd   DateTime? // Optional until they actually subscribe
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ==========================================
+// PILAR: ARQUITETURA DE INSTÂNCIAS E AGENTES
+// ==========================================
+model WhatsAppInstance {
+  id     String @id @default(uuid())
+  userId String?
+  user   User?  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name        String // Ex: "Vendas" ou "Suporte"
+  provider    String // ultramsg, wasender
+  instanceKey String @unique // ID no provedor (provider ID)
+  token       String
+
+  status String @default("disconnected")
+
+  // 1 Instância roda 1 Agente
+  agentId String? @unique
+  agent   Agent?  @relation(fields: [agentId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Agent {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name         String // Ex: "Atendente Padrão"
+  systemPrompt String @db.Text
+  temperature  Float  @default(0.7)
+
+  lastEditedBy String? // "USER" or "ADMIN - nome"
+  lastEditedAt DateTime?
+
+  instance WhatsAppInstance?
+  responseCache AgentResponseCache[]
+  auditLogs     AgentAuditLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ==========================================
+// PILAR: MEMÓRIA, HISTÓRICO E HANDOFF
+// ==========================================
+model Customer {
+  id     String @id @default(uuid())
+  userId String // Multi-tenant: Dono deste lead
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  phone String
+  name  String?
+
+  sessions ChatSession[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, phone]) // Mesmo cliente pode existir para empresas diferentes
+}
+
+model ChatSession {
+  id         String   @id @default(uuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  // Controle de Transbordo (Handoff)
+  status String @default("active") // active, human_handoff, closed
+
+  messages Message[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Message {
+  id        String      @id @default(uuid())
+  sessionId String
+  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  role    String // "user" (cliente final), "assistant" (IA), "system" (avisos internos)
+  content String @db.Text
+
+  tokensUsed Int @default(0) // Auditoria de custo da OpenAI
+
+  createdAt DateTime @default(now())
+}
+
+// ==========================================
+// PILAR: OTIMIZAÇÃO E AUDITORIA (NOVO)
+// ==========================================
+model AgentResponseCache {
+  id        String   @id @default(uuid())
+  agentId   String
+  agent     Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  
+  query     String   @db.Text
+  response  String   @db.Text
+  
+  createdAt DateTime @default(now())
+
+  @@index([agentId, query])
+}
+
+model AgentAuditLog {
+  id        String   @id @default(uuid())
+  agentId   String
+  agent     Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  
+  editedBy  String   // Ex: "USER", "ADMIN - João"
+  action    String   // Ex: "UPDATE_PROMPT", "UPDATE_TEMPERATURE"
+  
+  createdAt DateTime @default(now())
+}

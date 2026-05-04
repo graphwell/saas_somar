@@ -1,0 +1,102 @@
+{
+  "name": "Somar.IA SaaS Flow (Gemini + Cache)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "somar-ia-saas",
+        "options": {}
+      },
+      "id": "webhook-node",
+      "name": "Webhook Inbound (From Next.js)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [ 250, 300 ]
+    },
+    {
+      "parameters": {
+        "model": "gemini-1.5-flash",
+        "prompt": "={{ $json.body.mensagem }}",
+        "systemMessage": "={{ $json.body.agentConfig.prompt }}",
+        "temperature": "={{ $json.body.agentConfig.temperature }}"
+      },
+      "id": "gemini-node",
+      "name": "Google Gemini (LLM)",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1,
+      "position": [ 500, 300 ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://seu-dominio.com/api/n8n/callback",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer somar-n8n-secret-2026"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"agentId\": \"{{ $('Webhook Inbound (From Next.js)').item.json.body.agentConfig.agentId }}\",\n  \"query\": \"{{ $('Webhook Inbound (From Next.js)').item.json.body.mensagem }}\",\n  \"response\": \"{{ $json.text }}\",\n  \"tokensUsed\": \"{{ $json.usage.totalTokens }}\",\n  \"userId\": \"{{ $('Webhook Inbound (From Next.js)').item.json.body.userId }}\"\n}"
+      },
+      "id": "http-cache-node",
+      "name": "Log Token & Cache (Next.js API)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [ 750, 300 ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Webhook Inbound (From Next.js)').item.json.body.provider === 'wasender' ? 'API_WASENDER' : 'API_ULTRAMSG' }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"{{ $('Webhook Inbound (From Next.js)').item.json.body.telefone }}\",\n  \"message\": \"{{ $('Google Gemini (LLM)').item.json.text }}\"\n}"
+      },
+      "id": "http-whatsapp-node",
+      "name": "Send via WhatsApp API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [ 1000, 300 ]
+    }
+  ],
+  "connections": {
+    "Webhook Inbound (From Next.js)": {
+      "main": [
+        [
+          {
+            "node": "Google Gemini (LLM)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini (LLM)": {
+      "main": [
+        [
+          {
+            "node": "Log Token & Cache (Next.js API)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Token & Cache (Next.js API)": {
+      "main": [
+        [
+          {
+            "node": "Send via WhatsApp API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
