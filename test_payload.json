@@ -1,1 +1,1 @@
-{"instanceName":"test-create-qr-3","integration":"WHATSAPP-BAILEYS"}
+{"instanceName":"test-create-qr-4","integration":"WHATSAPP-BAILEYS","webhook":{"enabled":true,"url":"https://graphwell-saassomar.vercel.app/api/whatsapp/webhook/evolution","events":["MESSAGES_UPSERT","CONNECTION_UPDATE","QRCODE_UPDATED"],"byEvents":false,"base64":false}}
