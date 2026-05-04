@@ -77,7 +77,7 @@ export async function POST(req: Request) {
       }
     };
 
-    const res = await fetch(`${EVOLUTION_URL}/instance/create`, {
+    let res = await fetch(`${EVOLUTION_URL}/instance/create`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -86,11 +86,32 @@ export async function POST(req: Request) {
       body: JSON.stringify(body)
     });
 
-    const data = await res.json();
+    let data = await res.json();
+
+    // Se a instância já existe (pode ser uma ghost instance que ficou na API mas não no DB)
+    const errorMsg = Array.isArray(data?.response?.message) ? data.response.message.join(' ') : (data?.response?.message || data?.message || '');
+    if (!res.ok && errorMsg.includes('already in use')) {
+      console.warn(`EVOLUTION_CREATE: Instância ${safeName} já existe (Ghost). Forçando deleção...`);
+      // Deleta a ghost instance
+      await fetch(`${EVOLUTION_URL}/instance/delete/${safeName}`, {
+        method: 'DELETE',
+        headers: { apikey: EVOLUTION_KEY }
+      });
+      // Tenta criar novamente
+      res = await fetch(`${EVOLUTION_URL}/instance/create`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: EVOLUTION_KEY
+        },
+        body: JSON.stringify(body)
+      });
+      data = await res.json();
+    }
 
     if (!res.ok) {
       console.error('EVOLUTION_CREATE_ERROR:', data);
-      return NextResponse.json({ error: data.message || 'Erro ao criar instância' }, { status: 400 });
+      return NextResponse.json({ error: data.response?.message || data.message || 'Erro ao criar instância' }, { status: 400 });
     }
 
     // Salvar a instância no banco de dados
