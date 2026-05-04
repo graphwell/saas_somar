@@ -52,39 +52,40 @@ export async function POST(req: Request) {
       // 1. Criar Usuário com Configuração de Agente padrão
       const newUser = await tx.user.create({
         data: {
-          nome: nomeTrimmed,
+          name: nomeTrimmed,
           email: emailTrimmed,
-          senha: hashedPassword,
+          password: hashedPassword,
           role: 'USER',
-          agentConfig: {
+          agents: {
             create: {
-              prompt: `Você é uma assistente virtual profissional para a empresa ${nomeTrimmed}.`,
+              name: 'Atendente Padrão',
+              systemPrompt: `Você é uma assistente virtual profissional para a empresa ${nomeTrimmed}.`,
               temperature: 0.7,
             }
           }
         },
       });
 
-      // 2. Buscar Instância Trial disponível no Pool
-      const trialInstance = await tx.instance.findFirst({
-        where: { type: 'trial', status: 'available' }
+      // 2. Criar Assinatura Trial
+      await tx.subscription.create({
+        data: {
+          userId: newUser.id,
+          planType: 'trial',
+          status: 'active',
+          currentPeriodEnd: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 dias
+        }
       });
 
-      if (trialInstance) {
-        // 3. Vincular Instância
-        await tx.instance.update({
-          where: { id: trialInstance.id },
-          data: { status: 'in_use' }
-        });
+      // 3. Buscar Instância disponível no Pool
+      const poolInstance = await tx.whatsAppInstance.findFirst({
+        where: { userId: null }
+      });
 
-        await tx.userInstance.create({
-          data: {
-            userId: newUser.id,
-            instanceId: trialInstance.id,
-            plan: 'trial',
-            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-            lastResetAt: new Date().toISOString().slice(0, 10),
-          }
+      if (poolInstance) {
+        // 4. Vincular Instância
+        await tx.whatsAppInstance.update({
+          where: { id: poolInstance.id },
+          data: { userId: newUser.id }
         });
       }
 
@@ -94,9 +95,9 @@ export async function POST(req: Request) {
     return NextResponse.json({
       user: {
         id: user.id,
-        nome: user.nome,
+        nome: user.name,
         email: user.email,
-        hasTrialInstance: !!(await prisma.userInstance.findUnique({ where: { userId: user.id } }))
+        hasTrialInstance: !!(await prisma.whatsAppInstance.findFirst({ where: { userId: user.id } }))
       }
     });
 

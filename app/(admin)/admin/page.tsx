@@ -23,9 +23,13 @@ export default async function AdminDashboardPage() {
   try {
     const totalUsers = await prisma.user.count();
     const activeSubscribers = await prisma.user.count({
-      where: { statusPlano: 'active' }
+      where: { 
+        subscription: {
+          status: 'active'
+        }
+      }
     });
-    const activeInstances = await prisma.instance.count({
+    const activeInstances = await prisma.whatsAppInstance.count({
       where: { status: 'connected' }
     });
     

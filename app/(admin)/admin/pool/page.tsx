@@ -7,14 +7,14 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 
 export default async function AdminPoolPage() {
-  const instances = await prisma.instance.findMany({
+  const instances = await prisma.whatsAppInstance.findMany({
     include: { user: true },
     orderBy: { createdAt: 'desc' }
   });
 
   const users = await prisma.user.findMany({
     where: { role: 'USER' },
-    select: { id: true, nome: true, email: true }
+    select: { id: true, name: true, email: true }
   });
 
   const totalInstances = instances.length;
@@ -77,7 +77,7 @@ export default async function AdminPoolPage() {
                   <tr key={inst.id} className="hover:bg-white/[0.01] transition-base group">
                     <td className="px-6 py-4">
                       <div className="flex flex-col gap-1">
-                        <span className="text-xs font-bold text-white uppercase tracking-tight">{inst.instanceId}</span>
+                        <span className="text-xs font-bold text-white uppercase tracking-tight">{inst.instanceKey}</span>
                         <span className="text-[10px] text-[#6B7280] uppercase font-bold">{inst.provider}</span>
                       </div>
                     </td>
@@ -85,7 +85,7 @@ export default async function AdminPoolPage() {
                       <div className="flex flex-col gap-1 max-w-[200px]">
                         <span className="text-[10px] font-mono text-[#9CA3AF] truncate">{inst.token}</span>
                         <div className="flex items-center gap-1.5 text-[9px] text-[#6B7280] truncate">
-                           <LinkIcon size={10} /> {inst.webhookUrl || 'Propagado pelo Next.js'}
+                           <LinkIcon size={10} /> Propagado pelo Next.js
                         </div>
                       </div>
                     </td>
@@ -98,10 +98,10 @@ export default async function AdminPoolPage() {
                       {inst.user ? (
                         <div className="flex items-center gap-2">
                            <div className="w-7 h-7 rounded-full bg-[#6C5DD3]/10 flex items-center justify-center text-[#6C5DD3] text-[10px] font-bold">
-                              {inst.user.nome.charAt(0)}
+                              {inst.user.name.charAt(0)}
                            </div>
                            <div className="flex flex-col">
-                              <span className="text-xs font-bold text-white">{inst.user.nome}</span>
+                              <span className="text-xs font-bold text-white">{inst.user.name}</span>
                               <span className="text-[9px] text-[#6B7280]">{inst.user.email}</span>
                            </div>
                         </div>

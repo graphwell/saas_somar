@@ -34,21 +34,19 @@ export async function POST(req: Request) {
       where: { userId },
     });
 
-    const agentConfig = {
-      segment: segment || '',
-      location: location || '',
-      businessName: businessName.trim(),
-      services: agentServices || '',
-      tone: agentTone || 'neutral',
-    };
+    const systemPrompt = `Você é ${agentName.trim()}, um assistente virtual para ${businessName.trim()}.
+Segmento: ${segment || 'Não especificado'}
+Localização: ${location || 'Não especificada'}
+Tom de voz: ${agentTone || 'neutral'}
+Serviços: ${agentServices || 'Não especificados'}`;
 
     if (existingAgent) {
       // Atualizar agente existente
       await prisma.agent.update({
         where: { id: existingAgent.id },
         data: {
-          nomeAgente: agentName.trim(),
-          configuracao: agentConfig,
+          name: agentName.trim(),
+          systemPrompt: systemPrompt,
         },
       });
     } else {
@@ -56,9 +54,8 @@ export async function POST(req: Request) {
       await prisma.agent.create({
         data: {
           userId,
-          nomeAgente: agentName.trim(),
-          configuracao: agentConfig,
-          ativo: false, // inativo até conectar WhatsApp
+          name: agentName.trim(),
+          systemPrompt: systemPrompt,
         },
       });
     }

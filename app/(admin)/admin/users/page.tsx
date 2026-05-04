@@ -1,9 +1,13 @@
 import { Users, Plus, ShieldCheck, CreditCard, Search, Filter } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
-type UserWithCount = Awaited<ReturnType<typeof prisma.user.findMany>>[number] & {
-  _count: { instances: number };
-};
+type UserWithCount = Prisma.UserGetPayload<{
+  include: {
+    subscription: true;
+    _count: { select: { instances: true } };
+  };
+}>;
 
 // This is a Server Component to fetch data directly via Prisma
 export default async function AdminUsersPage() {
@@ -11,12 +15,13 @@ export default async function AdminUsersPage() {
   try {
     users = await prisma.user.findMany({
       include: {
+        subscription: true,
         _count: {
           select: { instances: true }
         }
       },
       orderBy: { createdAt: 'desc' }
-    }) as UserWithCount[];
+    });
   } catch (error) {
     console.error("Erro ao buscar usuários (verifique a conexão com o banco):", error);
     users = [];
@@ -68,7 +73,7 @@ export default async function AdminUsersPage() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '2rem' }}>
         {[
           { label: 'Total de Clientes', value: users.length, icon: Users, color: '#3b82f6' },
-          { label: 'Assinantes Ativos', value: users.filter(u => u.statusPlano === 'active').length, icon: CreditCard, color: '#10b981' },
+          { label: 'Assinantes Ativos', value: users.filter(u => u.subscription?.status === 'active').length, icon: CreditCard, color: '#10b981' },
           { label: 'Instâncias Ativas', value: users.reduce((acc, curr) => acc + (curr._count?.instances || 0), 0), icon: ShieldCheck, color: '#8b5cf6' },
           { label: 'MRR Estimado', value: 'R$ 0,00', icon: CreditCard, color: '#f59e0b' },
         ].map((stat, i) => (
@@ -112,10 +117,10 @@ export default async function AdminUsersPage() {
                     <td style={{ padding: '1.25rem 1.5rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'var(--surface-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, border: '1px solid var(--border-color)' }}>
-                          {user.nome.charAt(0)}
+                          {user.name.charAt(0)}
                         </div>
                         <div>
-                          <div style={{ fontWeight: 600, fontSize: '0.925rem' }}>{user.nome}</div>
+                          <div style={{ fontWeight: 600, fontSize: '0.925rem' }}>{user.name}</div>
                           <div style={{ fontSize: '0.825rem', color: 'var(--text-secondary)' }}>{user.email}</div>
                         </div>
                       </div>
@@ -134,19 +139,19 @@ export default async function AdminUsersPage() {
                     </td>
                     <td style={{ padding: '1.25rem 1.5rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                        <span style={{ fontSize: '0.875rem', fontWeight: 600, textTransform: 'capitalize' }}>{user.plano}</span>
-                        {user.statusPlano === 'active' && <ShieldCheck size={14} style={{ color: '#10b981' }} />}
+                        <span style={{ fontSize: '0.875rem', fontWeight: 600, textTransform: 'capitalize' }}>{user.subscription?.planType || 'free'}</span>
+                        {user.subscription?.status === 'active' && <ShieldCheck size={14} style={{ color: '#10b981' }} />}
                       </div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
-                        {user.stripeCustomerId || 'Sem ID Stripe'}
+                        {user.subscription?.stripeCustomerId || 'Sem ID Stripe'}
                       </div>
                     </td>
                     <td style={{ padding: '1.25rem 1.5rem' }}>
                       <div style={{ fontSize: '0.925rem', fontWeight: 500 }}>{user._count?.instances || 0} Ativas</div>
                     </td>
                     <td style={{ padding: '1.25rem 1.5rem' }}>
-                      <span className={`status ${user.statusPlano === 'active' ? 'active' : 'inactive'}`} style={{ fontSize: '0.75rem' }}>
-                        {user.statusPlano === 'active' ? 'Assinante' : 'Inativo / Free'}
+                      <span className={`status ${user.subscription?.status === 'active' ? 'active' : 'inactive'}`} style={{ fontSize: '0.75rem' }}>
+                        {user.subscription?.status === 'active' ? 'Assinante' : 'Inativo / Free'}
                       </span>
                     </td>
                     <td style={{ padding: '1.25rem 1.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>

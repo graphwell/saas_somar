@@ -18,7 +18,7 @@ import { Card } from '@/components/ui/Card';
 import { addInstanceToPool, assignInstanceToUser, deleteInstance } from './actions';
 
 interface PoolClientProps {
-  users: { id: string; nome: string; email: string }[];
+  users: { id: string; name: string; email: string }[];
   instances: any[];
 }
 
