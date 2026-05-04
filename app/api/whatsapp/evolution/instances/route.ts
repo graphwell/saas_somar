@@ -51,61 +51,10 @@ export async function POST(req: Request) {
     // Sanitiza o nome: apenas letras, números, hífens e underscores
     const safeName = `${instanceName.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '-')}-${userId.slice(0, 8)}`;
 
-    const webhookUrl = 'https://graphwell-saassomar.vercel.app/api/whatsapp/webhook/evolution';
-
-    const body = {
-      instanceName: safeName,
-      token: safeName, // o token é o próprio nome da instância na Evolution v2
-      integration: 'WHATSAPP-BAILEYS',
-      webhook: {
-        enabled: true,
-        url: webhookUrl,
-        events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE', 'QRCODE_UPDATED'],
-        byEvents: false,
-        base64: false
-      },
-      settings: {
-        rejectCall: false,
-        msgCall: '',
-        groupsIgnore: true,
-        alwaysOnline: true,
-        readMessages: true,
-        readStatus: false,
-        syncFullHistory: false
-      }
-    };
-
-    let res = await fetch(`${EVOLUTION_URL}/instance/create`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        apikey: EVOLUTION_KEY
-      },
-      body: JSON.stringify(body)
-    });
-
-    let data = await res.json();
-
-    // Se a instância já existe (pode ser uma ghost instance que ficou na API mas não no DB)
-    const errorMsg = Array.isArray(data?.response?.message) ? data.response.message.join(' ') : (data?.response?.message || data?.message || '');
-    if (!res.ok && errorMsg.includes('already in use')) {
-      console.warn(`EVOLUTION_CREATE: Instância ${safeName} já existe (Ghost). Forçando deleção...`);
-      // Deleta a ghost instance
-      await fetch(`${EVOLUTION_URL}/instance/delete/${safeName}`, {
-        method: 'DELETE',
-        headers: { apikey: EVOLUTION_KEY }
-      });
-      // Tenta criar novamente
-      res = await fetch(`${EVOLUTION_URL}/instance/create`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          apikey: EVOLUTION_KEY
-        },
-        body: JSON.stringify(body)
-      });
-      data = await res.json();
-    }
+    const { WhatsappLifecycleService } = await import('@/lib/services/whatsapp-lifecycle.service');
+    
+    // Deleta rastros anteriores, aguarda e cria de forma limpa, já associando o webhook HTTPS
+    const { res, data } = await WhatsappLifecycleService.createFreshInstance(safeName);
 
     if (!res.ok) {
       console.error('EVOLUTION_CREATE_ERROR:', data);

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Smartphone, CheckCircle2, QrCode,
   RefreshCcw, Loader2, AlertCircle, RotateCcw
@@ -8,55 +8,26 @@ import {
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { useInstanceStatus } from '@/hooks/useInstanceStatus';
 
 export default function WhatsAppPage() {
-  const [status, setStatus] = useState<any>(null);
-  const [qrData, setQrData] = useState<{ qrcode: string | null; status: string; message?: string } | null>(null);
-  const [isLoadingQr, setIsLoadingQr] = useState(false);
+  const [userStatus, setUserStatus] = useState<any>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [error, setError] = useState('');
   const [currentInstance, setCurrentInstance] = useState<string | null>(null);
 
+  const { status: instanceStatus, qrCode, refresh, isRefreshing } = useInstanceStatus(currentInstance);
+
   useEffect(() => {
     fetch('/api/user/status')
       .then(r => r.json())
       .then(d => {
-        setStatus(d);
+        setUserStatus(d);
         if (d.instanceKey) {
           setCurrentInstance(d.instanceKey);
-          fetchQr(d.instanceKey);
         }
       });
-  }, []);
-
-  useEffect(() => {
-    if (!currentInstance || qrData?.status === 'open') return;
-    const interval = setInterval(() => fetchQr(currentInstance), 7000);
-    return () => clearInterval(interval);
-  }, [currentInstance, qrData?.status]);
-
-  const fetchQr = useCallback(async (instance: string) => {
-    setIsLoadingQr(true);
-    setError('');
-    try {
-      const r = await fetch(`/api/whatsapp/evolution/qrcode?instance=${instance}`);
-      const d = await r.json();
-      if (!r.ok) {
-        if (d.needsRecreate) {
-          setCurrentInstance(null);
-          setError('Instância não encontrada. Clique em "Gerar QR Code" para criar uma nova.');
-          return;
-        }
-        setError(d.error || `Erro ${r.status} ao buscar QR Code`);
-        return;
-      }
-      setQrData(d);
-    } catch (e: any) {
-      setError(`Falha de conexão: ${e.message || 'Erro desconhecido'}`);
-    } finally {
-      setIsLoadingQr(false);
-    }
   }, []);
 
   const handleCreateAndGenerateQr = async () => {
@@ -70,9 +41,9 @@ export default function WhatsAppPage() {
       });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || 'Erro ao criar instância');
+      
       setCurrentInstance(d.instanceName);
-      // Após a criação da instância (no estado close), busca o QR Code (iniciando a conexão)
-      await fetchQr(d.instanceName);
+      // O hook useInstanceStatus começará a fazer polling automaticamente
     } catch (e: any) {
       setError(e.message || 'Erro inesperado ao criar instância');
     } finally {
@@ -88,10 +59,9 @@ export default function WhatsAppPage() {
       const r = await fetch('/api/whatsapp/evolution/reset', { method: 'DELETE' });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || 'Erro ao resetar');
-      // Limpa estado local
+      
       setCurrentInstance(null);
-      setQrData(null);
-      setStatus((prev: any) => ({ ...prev, status: 'disconnected', instanceKey: null }));
+      setUserStatus((prev: any) => ({ ...prev, status: 'disconnected', instanceKey: null }));
     } catch (e: any) {
       setError(e.message || 'Erro ao resetar instância');
     } finally {
@@ -99,7 +69,7 @@ export default function WhatsAppPage() {
     }
   };
 
-  const isConnected = qrData?.status === 'open';
+  const isConnected = instanceStatus === 'connected';
 
   return (
     <div className="space-y-8 animate-fade-in max-w-5xl">
@@ -123,14 +93,14 @@ export default function WhatsAppPage() {
                     ? <Badge variant="green" className="animate-pulse">CONECTADO</Badge>
                     : <Badge variant="red">DESCONECTADO</Badge>}
                   <span className="text-[10px] text-[#6B7280] font-bold uppercase tracking-widest">
-                    Plano: {status?.plan || '...'}
+                    Plano: {userStatus?.plan || '...'}
                   </span>
                 </div>
               </div>
             </div>
             <div className="flex gap-2">
               {currentInstance && (
-                <Button variant="ghost" size="sm" onClick={() => fetchQr(currentInstance)} isLoading={isLoadingQr}>
+                <Button variant="ghost" size="sm" onClick={refresh} isLoading={isRefreshing}>
                   <RefreshCcw size={14} className="mr-2" /> Atualizar
                 </Button>
               )}
@@ -158,7 +128,7 @@ export default function WhatsAppPage() {
             </div>
             <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 space-y-1">
               <div className="text-[10px] uppercase font-bold text-[#6B7280] tracking-widest">Mensagens Usadas</div>
-              <div className="text-sm font-bold text-white">{status?.messagesSentToday || 0} / {status?.limit || '∞'}</div>
+              <div className="text-sm font-bold text-white">{userStatus?.messagesSentToday || 0} / {userStatus?.limit || '∞'}</div>
             </div>
             <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 space-y-1">
               <div className="text-[10px] uppercase font-bold text-[#6B7280] tracking-widest">Segurança</div>
@@ -211,20 +181,15 @@ export default function WhatsAppPage() {
 
               {/* QR Code Display */}
               <div className="w-52 h-52 bg-white p-3 rounded-2xl relative overflow-hidden">
-                {(isLoadingQr || isCreating) ? (
+                {(isRefreshing || isCreating || instanceStatus === 'loading') ? (
                   <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-center p-2">
                     <Loader2 size={32} className="animate-spin text-[#00E5A0]" />
-                    <p className="text-xs text-gray-400">{isCreating ? 'Criando instância...' : 'Carregando QR...'}</p>
+                    <p className="text-xs text-gray-400">{isCreating ? 'Criando instância...' : 'Carregando...'}</p>
                   </div>
-                ) : qrData?.status === 'starting' ? (
-                  <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-center p-2">
-                    <Loader2 size={32} className="animate-spin text-[#00E5A0]" />
-                    <p className="text-xs text-gray-500">{qrData.message || 'Iniciando WhatsApp...'}</p>
-                  </div>
-                ) : qrData?.qrcode ? (
+                ) : qrCode ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={qrData.qrcode.startsWith('data:') ? qrData.qrcode : `data:image/png;base64,${qrData.qrcode}`}
+                    src={qrCode.startsWith('data:') ? qrCode : `data:image/png;base64,${qrCode}`}
                     alt="QR Code WhatsApp"
                     className="w-full h-full object-contain rounded-lg"
                   />
@@ -239,8 +204,8 @@ export default function WhatsAppPage() {
 
               <Button
                 className="w-full font-bold"
-                onClick={currentInstance ? () => fetchQr(currentInstance) : handleCreateAndGenerateQr}
-                isLoading={isLoadingQr || isCreating}
+                onClick={currentInstance ? refresh : handleCreateAndGenerateQr}
+                isLoading={isRefreshing || isCreating}
               >
                 <RefreshCcw size={14} className="mr-2" /> Gerar Novo QR Code
               </Button>
