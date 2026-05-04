@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
-const EVOLUTION_URL = process.env.EVOLUTION_API_URL || 'http://evolution.somar.ia.br';
+const EVOLUTION_URL = process.env.EVOLUTION_API_URL || 'https://evolution.somar.ia.br';
 const EVOLUTION_KEY = process.env.EVOLUTION_API_KEY || 'sua-chave-aqui-mude-isso';
 
 // GET /api/whatsapp/evolution/instances — lista as instâncias do usuário
