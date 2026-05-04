@@ -25,29 +25,7 @@ export async function GET(req: Request) {
   }
 
   try {
-    // Passo 1: Reiniciar a instância para forçar a geração do QR Code
-    console.log(`QRCODE: Reiniciando instância ${instance}...`);
-    const restartRes = await fetch(`${EVOLUTION_URL}/instance/restart/${instance}`, {
-      method: 'PUT',
-      headers: { apikey: EVOLUTION_KEY },
-      cache: 'no-store'
-    });
-    
-    if (!restartRes.ok) {
-      // Se a instância não existe na Evolution, informa para recriar
-      if (restartRes.status === 404) {
-        return NextResponse.json({ 
-          error: 'Instância não encontrada na Evolution API.',
-          needsRecreate: true
-        }, { status: 404 });
-      }
-      console.warn(`QRCODE: Restart retornou ${restartRes.status} para ${instance}`);
-    }
-
-    // Passo 2: Aguardar 3 segundos para o QR ser gerado
-    await sleep(3000);
-
-    // Passo 3: Buscar o QR Code gerado
+    // Passo 1: Tentar obter o QR Code e conectar
     console.log(`QRCODE: Buscando QR de ${instance}...`);
     const connectRes = await fetch(`${EVOLUTION_URL}/instance/connect/${instance}`, {
       headers: { apikey: EVOLUTION_KEY },
@@ -55,11 +33,21 @@ export async function GET(req: Request) {
     });
 
     const rawText = await connectRes.text();
-    console.log(`QRCODE_RESPONSE [${instance}]:`, rawText.slice(0, 300));
+    console.log(`QRCODE_RESPONSE [${instance}] status=${connectRes.status}:`, rawText.slice(0, 300));
 
     let data: any = {};
     try { data = JSON.parse(rawText); } catch {
       return NextResponse.json({ error: 'Resposta inválida da Evolution API' }, { status: 502 });
+    }
+
+    if (!connectRes.ok) {
+      if (connectRes.status === 404 || data?.error?.includes('not found') || data?.message?.includes('not found')) {
+        return NextResponse.json({ 
+          error: 'Instância não encontrada na Evolution API.',
+          needsRecreate: true
+        }, { status: 404 });
+      }
+      return NextResponse.json({ error: data?.message || data?.error || `Erro ${connectRes.status}` }, { status: 400 });
     }
 
     // Evolution API v2 retorna o QR em diferentes campos dependendo da versão
