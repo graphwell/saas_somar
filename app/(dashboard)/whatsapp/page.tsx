@@ -43,10 +43,26 @@ export default function WhatsAppPage() {
     try {
       const r = await fetch(`/api/whatsapp/evolution/qrcode?instance=${instance}`);
       const d = await r.json();
-      if (!r.ok) throw new Error(d.error || 'Falha ao buscar QR Code');
+      
+      if (!r.ok) {
+        // Se a instância não existe na Evolution, limpa e deixa usuário recriar
+        if (d.needsRecreate) {
+          setCurrentInstance(null);
+          setError('Instância não encontrada na Evolution API. Clique em "Gerar QR Code" para criar uma nova.');
+          return;
+        }
+        setError(d.error || `Erro ${r.status} ao buscar QR Code`);
+        return;
+      }
+
+      if (!d.qrcode) {
+        setError(`QR Code não disponível agora (status: ${d.status || 'desconhecido'}). Tente novamente em alguns segundos.`);
+        return;
+      }
+
       setQrData(d);
     } catch (e: any) {
-      setError(e.message || 'Falha ao buscar QR Code');
+      setError(`Falha de conexão: ${e.message || 'Erro desconhecido'}`);
     } finally {
       setIsLoadingQr(false);
     }
