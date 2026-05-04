@@ -24,13 +24,12 @@ async function createEvolutionInstance(userId: string, userName: string): Promis
     const body = {
       instanceName: instanceKey,
       token: instanceKey,
-      qrcode: true,
       integration: 'WHATSAPP-BAILEYS',
       webhook: {
         enabled: true,
-        url: webhookUrl,
-        events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE'],
-        byEvents: true,
+        url: 'https://graphwell-saassomar.vercel.app/api/whatsapp/webhook/evolution',
+        events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE', 'QRCODE_UPDATED'],
+        byEvents: false,
         base64: false,
       },
       settings: {

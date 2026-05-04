@@ -51,9 +51,7 @@ export async function POST(req: Request) {
     // Sanitiza o nome: apenas letras, números, hífens e underscores
     const safeName = `${instanceName.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '-')}-${userId.slice(0, 8)}`;
 
-    const protocol = req.headers.get('x-forwarded-proto') || 'https';
-    const host = req.headers.get('host');
-    const webhookUrl = `${protocol}://${host}/api/whatsapp/webhook/evolution`;
+    const webhookUrl = 'https://graphwell-saassomar.vercel.app/api/whatsapp/webhook/evolution';
 
     const body = {
       instanceName: safeName,
