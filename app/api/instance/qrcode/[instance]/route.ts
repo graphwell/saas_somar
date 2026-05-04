@@ -5,11 +5,12 @@ const EVOLUTION_KEY = process.env.EVOLUTION_API_KEY || '';
 
 export async function GET(
   _: Request,
-  { params }: { params: { instance: string } }
+  { params }: { params: Promise<{ instance: string }> }
 ) {
   try {
+    const resolvedParams = await params;
     const res = await fetch(
-      `${EVOLUTION_URL}/instance/connect/${params.instance}`,
+      `${EVOLUTION_URL}/instance/connect/${resolvedParams.instance}`,
       { headers: { apikey: EVOLUTION_KEY }, cache: 'no-store' }
     );
     

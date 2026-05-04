@@ -3,11 +3,12 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET(
   _: Request,
-  { params }: { params: { instance: string } }
+  { params }: { params: Promise<{ instance: string }> }
 ) {
   try {
+    const resolvedParams = await params;
     const instance = await prisma.whatsAppInstance.findUnique({
-      where: { instanceKey: params.instance },
+      where: { instanceKey: resolvedParams.instance },
       select: { status: true }
     });
 

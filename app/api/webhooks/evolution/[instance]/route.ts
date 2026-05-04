@@ -6,13 +6,14 @@ const EVOLUTION_URL = (process.env.EVOLUTION_API_URL || 'https://evolution.somar
 
 export async function POST(
   request: Request,
-  { params }: { params: { instance: string } }
+  { params }: { params: Promise<{ instance: string }> }
 ) {
   try {
     const body = await request.json();
     const event = (body.event || '').toLowerCase();
     const data = body.data || body;
-    const instanceKey = params.instance;
+    const resolvedParams = await params;
+    const instanceKey = resolvedParams.instance;
 
     // 1. ATUALIZAÇÃO DE STATUS E QR CODE
     if (event === 'connection_update' || event === 'connection.update') {
