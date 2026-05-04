@@ -3,6 +3,8 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Settings, User, Lock, Bell } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 export default async function ConfiguracoesPage() {
   const session = await getServerSession(authOptions);
   const userId = (session?.user as any)?.id;

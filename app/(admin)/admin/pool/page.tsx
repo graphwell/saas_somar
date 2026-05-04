@@ -1,4 +1,5 @@
 import React from 'react';
+export const dynamic = 'force-dynamic';
 import { Server, ShieldCheck, Plus, Link as LinkIcon, UserPlus, Trash2 } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import PoolClient, { PoolActions } from './PoolClient';

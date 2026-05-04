@@ -2,6 +2,8 @@ import { Users, Plus, ShieldCheck, CreditCard, Search, Filter } from 'lucide-rea
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 
+export const dynamic = 'force-dynamic';
+
 type UserWithCount = Prisma.UserGetPayload<{
   include: {
     subscription: true;
