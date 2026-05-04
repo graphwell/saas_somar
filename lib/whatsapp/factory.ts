@@ -108,7 +108,7 @@ export class EvolutionAdapter implements ProviderAdapter {
   private readonly apiKey: string;
 
   constructor() {
-    this.baseUrl = process.env.EVOLUTION_API_URL || 'https://evolution.somar.ia.br';
+    this.baseUrl = (process.env.EVOLUTION_API_URL || 'https://evolution.somar.ia.br').replace(/^http:\/\//i, 'https://');
     this.apiKey = process.env.EVOLUTION_API_KEY || 'sua-chave-aqui-mude-isso';
   }
 

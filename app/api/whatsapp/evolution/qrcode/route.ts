@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
-const EVOLUTION_URL = process.env.EVOLUTION_API_URL || 'https://evolution.somar.ia.br';
+const EVOLUTION_URL = (process.env.EVOLUTION_API_URL || 'https://evolution.somar.ia.br').replace(/^http:\/\//i, 'https://');
 const EVOLUTION_KEY = process.env.EVOLUTION_API_KEY || '';
 
 // Aguarda N milissegundos

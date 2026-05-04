@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 const N8N_WEBHOOK_URL = process.env.N8N_EVOLUTION_WEBHOOK_URL || process.env.N8N_WEBHOOK_URL || '';
-const EVOLUTION_URL = process.env.EVOLUTION_API_URL || 'https://evolution.somar.ia.br';
+const EVOLUTION_URL = (process.env.EVOLUTION_API_URL || 'https://evolution.somar.ia.br').replace(/^http:\/\//i, 'https://');
 
 // POST /api/whatsapp/webhook/evolution — recebe eventos da Evolution API
 export async function POST(req: Request) {
