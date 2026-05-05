@@ -129,7 +129,6 @@ export default function AdminInstancesPage() {
               >
                 <option value="ULTRAMSG">UltraMsg</option>
                 <option value="WASENDER">WaSender</option>
-                <option value="EVOLUTION">Evolution</option>
               </select>
             </div>
             <div className="space-y-2">

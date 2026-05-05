@@ -32,7 +32,7 @@ export default async function AdminDashboardPage() {
       }
     });
     const activeInstances = await prisma.whatsAppInstance.count({
-      where: { status: 'connected' }
+      where: { status: 'IN_USE' }
     });
     
     stats = {

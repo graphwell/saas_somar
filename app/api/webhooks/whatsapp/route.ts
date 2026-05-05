@@ -4,75 +4,100 @@ import { checkMessageLimit } from '@/lib/services/whatsapp-limit.service';
 
 const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || '';
 
+// POST /api/webhooks/whatsapp?provider=ULTRAMSG&instance=KEY
+// Recebe mensagens de UltraMsg e WaSender, verifica limites e repassa para o n8n
 export async function POST(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const providerParam = searchParams.get('provider'); // ULTRAMSG or WASENDER
-    const instanceKeyParam = searchParams.get('instance');
-    
-    const body = await request.json();
-    console.log(`[WHATSAPP_WEBHOOK] Received from ${providerParam}/${instanceKeyParam}`);
+    const providerParam = (searchParams.get('provider') || '').toUpperCase(); // ULTRAMSG | WASENDER
+    const instanceKeyParam = searchParams.get('instance') || '';
 
-    // 1. Identifica a instância e o usuário no banco
+    const body = await request.json();
+    console.log(`[WEBHOOK] Received from ${providerParam}/${instanceKeyParam}`);
+
+    // 1. Identifica instância, usuário e agente no banco
     const instance = await prisma.whatsAppInstance.findUnique({
-      where: { instanceKey: instanceKeyParam || '' },
-      include: { user: true }
+      where: { instanceKey: instanceKeyParam },
+      include: {
+        user: { include: { subscription: true } },
+        agent: true
+      }
     });
 
     if (!instance || !instance.userId) {
-      console.warn(`[WHATSAPP_WEBHOOK] Instância ${instanceKeyParam} não encontrada ou sem usuário.`);
-      return NextResponse.json({ error: 'Instance not found' }, { status: 404 });
+      console.warn(`[WEBHOOK] Instância '${instanceKeyParam}' não encontrada ou sem usuário.`);
+      return NextResponse.json({ ok: false, error: 'Instance not found' }, { status: 404 });
     }
 
-    // 2. Extrai a mensagem e o remetente baseado no provedor
+    // 2. Extrai mensagem e remetente conforme o provedor
     let message = '';
     let from = '';
+    let customerName = 'Cliente';
 
     if (providerParam === 'ULTRAMSG') {
-      // Estrutura UltraMsg
+      // Estrutura UltraMsg: body.data[0] ou direto no body
       const data = body.data?.[0] || body;
       message = data.body || '';
-      from = data.from || '';
+      from = (data.from || '').replace('@c.us', '');
+      customerName = data.pushName || data.notifyName || 'Cliente';
     } else if (providerParam === 'WASENDER') {
-      // Estrutura WaSender (exemplo hipotético)
+      // Estrutura WaSender
       message = body.message?.text || body.body || '';
-      from = body.sender?.jid || body.from || '';
+      from = (body.sender?.jid || body.from || '').replace('@s.whatsapp.net', '');
+      customerName = body.pushName || 'Cliente';
     }
 
-    if (!message || !from) {
-      return NextResponse.json({ ok: true, message: 'No content to process' });
+    // Ignora mensagens vazias ou enviadas pelo próprio número
+    if (!message || !from || body.fromMe === true || body.key?.fromMe === true) {
+      return NextResponse.json({ ok: true, ignored: true });
     }
 
-    // 3. Verifica limites (Incrementa o contador)
+    // 3. Verifica limite de mensagens e incrementa contador
     try {
       await checkMessageLimit(instance.userId);
     } catch (limitErr: any) {
-      console.error(`[LIMIT_EXCEEDED] User ${instance.userId}: ${limitErr.message}`);
-      // Opcional: Enviar mensagem de "Limite atingido" via API do provedor aqui
-      return NextResponse.json({ error: limitErr.message }, { status: 403 });
+      console.warn(`[WEBHOOK] Limite atingido para userId=${instance.userId}`);
+      return NextResponse.json({ ok: false, error: limitErr.message }, { status: 403 });
     }
 
-    // 4. Repassa para o n8n com o payload unificado
+    // 4. Verifica se há agente configurado
+    const agent = instance.agent;
+    if (!agent) {
+      console.warn(`[WEBHOOK] Nenhum agente vinculado à instância ${instanceKeyParam}`);
+      return NextResponse.json({ ok: false, error: 'No agent configured' }, { status: 400 });
+    }
+
+    // 5. Repassa ao n8n com payload padronizado (inclui config do agente e token da instância)
     const n8nPayload = {
       userId: instance.userId,
       provider: instance.provider,
       instanceKey: instance.instanceKey,
       apiToken: instance.token,
-      message: message,
-      from: from,
+      customerPhone: from,
+      customerName,
+      message,
+      agentConfig: {
+        name: agent.name,
+        prompt: agent.systemPrompt,
+        temperature: agent.temperature
+      },
       timestamp: new Date().toISOString()
     };
 
-    fetch(N8N_WEBHOOK_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(n8nPayload)
-    }).catch(err => console.error('[N8N_FORWARD_ERROR]', err));
+    if (N8N_WEBHOOK_URL) {
+      fetch(N8N_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(n8nPayload)
+      }).catch(err => console.error('[N8N_FORWARD_ERROR]', err));
+    } else {
+      console.warn('[WEBHOOK] N8N_WEBHOOK_URL não configurado — mensagem não repassada.');
+    }
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, routed: true });
 
   } catch (error: any) {
-    console.error('[WHATSAPP_WEBHOOK_ERROR]', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error('[WEBHOOK_ERROR]', error);
+    return NextResponse.json({ ok: false, error: 'Internal Server Error' }, { status: 500 });
   }
 }
