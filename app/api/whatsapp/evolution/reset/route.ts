@@ -23,15 +23,9 @@ export async function DELETE(req: Request) {
     });
 
     if (instance) {
-      // 2. Tentar deletar na Evolution API (ignorar erro se não existir)
-      try {
-        await fetch(`${EVOLUTION_URL}/instance/delete/${instance.instanceKey}`, {
-          method: 'DELETE',
-          headers: { apikey: EVOLUTION_KEY },
-        });
-      } catch (e) {
-        console.warn('EVOLUTION_DELETE_WARN: Falha ao deletar na Evolution (pode não existir):', e);
-      }
+      // 2. Tentar deletar na Evolution API de forma limpa usando o serviço centralizado
+      const { WhatsappLifecycleService } = await import('@/lib/services/whatsapp-lifecycle.service');
+      await WhatsappLifecycleService.forceDeleteInstance(instance.instanceKey);
 
       // 3. Deletar do banco de dados
       await prisma.whatsAppInstance.delete({
