@@ -14,7 +14,7 @@ export default function AdminLayout({
 
   const navItems = [
     { name: 'Usuários/Clientes', href: '/admin/users', icon: Users },
-    { name: 'Pool de Instâncias', href: '/admin/pool', icon: Server },
+    { name: 'Pool de Instâncias', href: '/admin/instances', icon: Server },
     { name: 'Logs e Monitoramento', href: '/admin/logs', icon: ShieldAlert },
   ];
 
