@@ -32,10 +32,10 @@ export async function POST(request: Request) {
     const instance = await prisma.whatsAppInstance.create({
       data: {
         name: name || `Instância ${instanceKey}`,
-        provider: provider as Provider,
+        provider: (provider as string).toUpperCase() as Provider,
         instanceKey,
         token: apiToken,
-        plan: plan as InstancePlan,
+        plan: (plan as string).toUpperCase() as InstancePlan,
         status: InstanceStatus.IDLE
       }
     });
