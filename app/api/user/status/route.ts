@@ -25,9 +25,10 @@ export async function GET() {
       plan: subscription?.planType || 'none',
       status: instance?.status || 'disconnected',
       instanceKey: instance?.instanceKey || null,
-      messagesSentToday: subscription?.messagesUsed || 0,
-      limit: subscription?.messagesLimit || null,
-      needsReconnect: instance?.status === 'disconnected',
+      provider: instance?.provider || null,
+      messagesSentToday: instance?.messageCount || 0,
+      limit: instance?.plan === 'TRIAL' ? 100 : (subscription?.messagesLimit || '∞'),
+      needsReconnect: instance?.status === 'DISABLED',
       expiresAt: subscription?.currentPeriodEnd,
     });
   } catch (error) {

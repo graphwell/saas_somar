@@ -45,7 +45,7 @@ export async function POST(req: Request) {
           break;
         }
 
-        const { WhatsappService } = await import('@/lib/services/whatsapp.service');
+        const { migrateToPaidInstance } = await import('@/lib/services/whatsapp-pool.service');
 
         await prisma.subscription.upsert({
             where: { userId },
@@ -67,6 +67,13 @@ export async function POST(req: Request) {
                 planType: 'pro',
             }
         });
+
+        // Migra para instância WaSender (Paid)
+        try {
+          await migrateToPaidInstance(userId);
+        } catch (migrateErr) {
+          console.warn(`STRIPE_WEBHOOK: Migração de instância falhou para ${userId}. Admin foi notificado.`);
+        }
 
         break;
       }

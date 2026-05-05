@@ -3,67 +3,7 @@ import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcrypt';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const EVOLUTION_URL = (process.env.EVOLUTION_API_URL || 'https://evolution.somar.ia.br').replace(/^http:\/\//i, 'https://');
-const EVOLUTION_KEY = process.env.EVOLUTION_API_KEY || '';
-
-// Cria instância exclusiva na Evolution API para o novo usuário
-async function createEvolutionInstance(userId: string, userName: string): Promise<string | null> {
-  try {
-    // instanceKey único: nome sanitizado + primeiros 8 chars do userId
-    const safeName = userName
-      .toLowerCase()
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // remove acentos
-      .replace(/[^a-z0-9]/g, '-')
-      .replace(/-+/g, '-')
-      .slice(0, 20)
-      .replace(/^-|-$/g, '');
-
-    const instanceKey = `${safeName}-${userId.slice(0, 8)}`;
-    const webhookUrl = `${process.env.NEXTAUTH_URL || ''}/api/whatsapp/webhook/evolution`;
-
-    const body = {
-      instanceName: instanceKey,
-      token: instanceKey,
-      integration: 'WHATSAPP-BAILEYS',
-      webhook: {
-        enabled: true,
-        url: 'https://graphwell-saassomar.vercel.app/api/whatsapp/webhook/evolution',
-        events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE', 'QRCODE_UPDATED'],
-        byEvents: false,
-        base64: false,
-      },
-      settings: {
-        rejectCall: false,
-        msgCall: '',
-        groupsIgnore: true,
-        alwaysOnline: true,
-        readMessages: true,
-        readStatus: false,
-        syncFullHistory: false,
-      },
-    };
-
-    const res = await fetch(`${EVOLUTION_URL}/instance/create`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        apikey: EVOLUTION_KEY,
-      },
-      body: JSON.stringify(body),
-    });
-
-    if (!res.ok) {
-      const err = await res.text();
-      console.error('EVOLUTION_CREATE_ERROR:', err);
-      return null;
-    }
-
-    return instanceKey;
-  } catch (err) {
-    console.error('EVOLUTION_INSTANCE_CREATION_FAILED:', err);
-    return null;
-  }
-}
+// Cadastro de novos usuários com atribuição de instância automática do pool
 
 export async function POST(req: Request) {
   try {
@@ -131,24 +71,14 @@ export async function POST(req: Request) {
       return newUser;
     });
 
-    // 2. Criar instância exclusiva na Evolution API (fora da transaction para não bloquear)
-    const instanceKey = await createEvolutionInstance(user.id, nomeTrimmed);
-
-    if (instanceKey) {
-      // 3. Salvar instância no banco vinculada ao usuário
-      await prisma.whatsAppInstance.create({
-        data: {
-          userId: user.id,
-          name: `WhatsApp de ${nomeTrimmed}`,
-          provider: 'evolution',
-          instanceKey,
-          token: instanceKey,
-          status: 'disconnected', // Aguardando scan do QR Code
-        },
-      });
-    } else {
-      // Log do erro mas não bloqueia o cadastro — usuário pode criar instância depois
-      console.warn(`REGISTER: Conta criada para ${user.id} mas instância Evolution falhou. Será criada no primeiro acesso.`);
+    // 2. Atribuir instância TRIAL do Pool (UltraMsg)
+    let instanceAssigned = false;
+    try {
+      const { assignTrialInstance } = await import('@/lib/services/whatsapp-pool.service');
+      await assignTrialInstance(user.id);
+      instanceAssigned = true;
+    } catch (poolErr) {
+      console.warn(`REGISTER: Conta criada para ${user.id} mas não havia instância Trial disponível no pool.`);
     }
 
     return NextResponse.json({
@@ -156,7 +86,7 @@ export async function POST(req: Request) {
         id: user.id,
         nome: user.name,
         email: user.email,
-        instanceReady: !!instanceKey,
+        instanceReady: instanceAssigned,
       },
     });
 

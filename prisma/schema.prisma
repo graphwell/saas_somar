@@ -60,17 +60,36 @@ model Subscription {
 // ==========================================
 // PILAR: ARQUITETURA DE INSTÂNCIAS E AGENTES
 // ==========================================
+enum Provider {
+  ULTRAMSG
+  WASENDER
+  EVOLUTION
+}
+
+enum InstanceStatus {
+  IDLE
+  IN_USE
+  DISABLED
+}
+
+enum InstancePlan {
+  TRIAL
+  PAID
+}
+
 model WhatsAppInstance {
   id     String @id @default(uuid())
-  userId String?
+  userId String? @unique
   user   User?  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   name        String // Ex: "Vendas" ou "Suporte"
-  provider    String // ultramsg, wasender
+  provider    Provider
   instanceKey String @unique // ID no provedor (provider ID)
-  token       String
+  token       String // API Token
 
-  status String @default("disconnected")
+  status      InstanceStatus @default(IDLE)
+  plan        InstancePlan @default(TRIAL)
+  messageCount Int @default(0)
 
   // 1 Instância roda 1 Agente
   agentId String? @unique

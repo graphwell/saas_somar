@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Smartphone, CheckCircle2, QrCode,
-  RefreshCcw, Loader2, AlertCircle, RotateCcw
+  RefreshCcw, Loader2, AlertCircle, ShieldCheck
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -12,70 +12,50 @@ import { useInstanceStatus } from '@/hooks/useInstanceStatus';
 
 export default function WhatsAppPage() {
   const [userStatus, setUserStatus] = useState<any>(null);
-  const [isCreating, setIsCreating] = useState(false);
-  const [isResetting, setIsResetting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [currentInstance, setCurrentInstance] = useState<string | null>(null);
 
-  const { status: instanceStatus, qrCode, refresh, isRefreshing } = useInstanceStatus(currentInstance);
+  // O hook useInstanceStatus só faz polling se o provider for EVOLUTION
+  const isEvolution = userStatus?.provider === 'EVOLUTION';
+  const { status: instanceStatus, qrCode, refresh, isRefreshing } = useInstanceStatus(isEvolution ? currentInstance : null);
+
+  const fetchStatus = async () => {
+    setIsLoading(true);
+    try {
+      const r = await fetch('/api/user/status');
+      const d = await r.json();
+      setUserStatus(d);
+      if (d.instanceKey) {
+        setCurrentInstance(d.instanceKey);
+      }
+    } catch (err) {
+      setError('Erro ao carregar status do WhatsApp');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    fetch('/api/user/status')
-      .then(r => r.json())
-      .then(d => {
-        setUserStatus(d);
-        if (d.instanceKey) {
-          setCurrentInstance(d.instanceKey);
-        }
-      });
+    fetchStatus();
   }, []);
 
-  const handleCreateAndGenerateQr = async () => {
-    setError('');
-    setIsCreating(true);
-    try {
-      const r = await fetch('/api/whatsapp/evolution/instances', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ instanceName: 'whatsapp' })
-      });
-      const d = await r.json();
-      if (!r.ok) throw new Error(d.error || 'Erro ao criar instância');
-      
-      setCurrentInstance(d.instanceName);
-      // O hook useInstanceStatus começará a fazer polling automaticamente
-    } catch (e: any) {
-      setError(e.message || 'Erro inesperado ao criar instância');
-    } finally {
-      setIsCreating(false);
-    }
-  };
+  const isConnected = isEvolution ? (instanceStatus === 'connected') : (userStatus?.status === 'IN_USE');
 
-  const handleReset = async () => {
-    if (!confirm('Isso vai desconectar e remover a instância atual. Deseja continuar?')) return;
-    setIsResetting(true);
-    setError('');
-    try {
-      const r = await fetch('/api/whatsapp/evolution/reset', { method: 'DELETE' });
-      const d = await r.json();
-      if (!r.ok) throw new Error(d.error || 'Erro ao resetar');
-      
-      setCurrentInstance(null);
-      setUserStatus((prev: any) => ({ ...prev, status: 'disconnected', instanceKey: null }));
-    } catch (e: any) {
-      setError(e.message || 'Erro ao resetar instância');
-    } finally {
-      setIsResetting(false);
-    }
-  };
-
-  const isConnected = instanceStatus === 'connected';
+  if (isLoading) {
+    return (
+      <div className="h-[60vh] flex flex-col items-center justify-center gap-4">
+        <Loader2 size={40} className="animate-spin text-[#6C5DD3]" />
+        <p className="text-[#6B7280]">Carregando configurações...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 animate-fade-in max-w-5xl">
       <div>
         <h2 className="text-3xl font-bold text-white tracking-tight">Conexão WhatsApp</h2>
-        <p className="text-[#9CA3AF] mt-1">Conecte seu WhatsApp para a IA começar a responder.</p>
+        <p className="text-[#9CA3AF] mt-1">Status da sua integração com o agente de IA.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -87,52 +67,40 @@ export default function WhatsAppPage() {
                 <Smartphone size={24} />
               </div>
               <div>
-                <h3 className="font-bold text-white">Status da Instância</h3>
+                <h3 className="font-bold text-white">Status da Conexão</h3>
                 <div className="flex items-center gap-2 mt-1">
                   {isConnected
                     ? <Badge variant="green" className="animate-pulse">CONECTADO</Badge>
                     : <Badge variant="red">DESCONECTADO</Badge>}
                   <span className="text-[10px] text-[#6B7280] font-bold uppercase tracking-widest">
-                    Plano: {userStatus?.plan || '...'}
+                    Plano: {userStatus?.plan?.toUpperCase() || '...'}
                   </span>
                 </div>
               </div>
             </div>
-            <div className="flex gap-2">
-              {currentInstance && (
-                <Button variant="ghost" size="sm" onClick={refresh} isLoading={isRefreshing}>
-                  <RefreshCcw size={14} className="mr-2" /> Atualizar
-                </Button>
-              )}
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={handleReset} 
-                isLoading={isResetting}
-                className="text-[#EF4444] hover:bg-[#EF4444]/10 hover:text-[#EF4444]"
-              >
-                <RotateCcw size={14} className="mr-2" /> Resetar
-              </Button>
-            </div>
+            
+            <Button variant="ghost" size="sm" onClick={fetchStatus} isLoading={isLoading}>
+              <RefreshCcw size={14} className="mr-2" /> Atualizar Status
+            </Button>
           </div>
 
           {/* Info Grid */}
           <div className="grid grid-cols-2 gap-4">
             <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 space-y-1">
-              <div className="text-[10px] uppercase font-bold text-[#6B7280] tracking-widest">Provedor</div>
-              <div className="text-sm font-bold text-white">Evolution API</div>
+              <div className="text-[10px] uppercase font-bold text-[#6B7280] tracking-widest">Provedor Ativo</div>
+              <div className="text-sm font-bold text-white">{userStatus?.provider || '—'}</div>
             </div>
             <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 space-y-1">
-              <div className="text-[10px] uppercase font-bold text-[#6B7280] tracking-widest">Instância</div>
-              <div className="text-sm font-mono text-[#9CA3AF] truncate">{currentInstance || '— aguardando criação'}</div>
+              <div className="text-[10px] uppercase font-bold text-[#6B7280] tracking-widest">ID da Instância</div>
+              <div className="text-sm font-mono text-[#9CA3AF] truncate">{currentInstance || '— aguardando atribuição'}</div>
             </div>
             <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 space-y-1">
-              <div className="text-[10px] uppercase font-bold text-[#6B7280] tracking-widest">Mensagens Usadas</div>
+              <div className="text-[10px] uppercase font-bold text-[#6B7280] tracking-widest">Mensagens Usadas (Hoje)</div>
               <div className="text-sm font-bold text-white">{userStatus?.messagesSentToday || 0} / {userStatus?.limit || '∞'}</div>
             </div>
             <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 space-y-1">
-              <div className="text-[10px] uppercase font-bold text-[#6B7280] tracking-widest">Segurança</div>
-              <div className="text-sm font-bold text-[#00E5A0]">Criptografia E2E</div>
+              <div className="text-[10px] uppercase font-bold text-[#6B7280] tracking-widest">Qualidade</div>
+              <div className="text-sm font-bold text-[#00E5A0]">Alta Disponibilidade</div>
             </div>
           </div>
 
@@ -143,35 +111,24 @@ export default function WhatsAppPage() {
             </div>
           )}
 
-          {/* Instrução quando não conectado */}
-          {!isConnected && (
-            <div className="bg-[#00E5A0]/5 border border-[#00E5A0]/20 rounded-xl p-4 space-y-2">
-              <p className="text-sm font-bold text-white">Como conectar:</p>
-              <ol className="text-sm text-[#9CA3AF] space-y-1 list-decimal list-inside">
-                <li>Clique em <span className="text-[#00E5A0] font-semibold">"Gerar Novo QR Code"</span></li>
-                <li>Abra o WhatsApp no seu celular</li>
-                <li>Vá em <strong>Aparelhos Conectados</strong> → <strong>Conectar aparelho</strong></li>
-                <li>Escaneie o QR Code que aparecerá na tela</li>
-              </ol>
+          {!isConnected && !isEvolution && (
+            <div className="bg-[#EF4444]/5 border border-[#EF4444]/20 rounded-xl p-4 flex gap-3 items-start">
+              <AlertCircle size={20} className="text-[#EF4444] shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="text-sm font-bold text-white">Conexão Pendente</p>
+                <p className="text-xs text-[#9CA3AF] leading-relaxed">
+                  Sua instância {userStatus?.provider} está sendo configurada. Se o problema persistir por mais de 5 minutos, entre em contato com nosso suporte técnico.
+                </p>
+              </div>
             </div>
           )}
         </Card>
 
-        {/* QR Code Card */}
+        {/* Action/QR Column */}
         <div>
-          {isConnected ? (
-            <Card className="flex flex-col items-center text-center p-8 border-[#00E5A0]/20 bg-[#00E5A0]/5 gap-4">
-              <div className="w-16 h-16 rounded-full bg-[#00E5A0]/20 flex items-center justify-center text-[#00E5A0]">
-                <CheckCircle2 size={32} />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-white">WhatsApp Conectado!</h3>
-                <p className="text-xs text-[#9CA3AF] mt-2">Sua IA está ativa e respondendo automaticamente.</p>
-              </div>
-            </Card>
-          ) : (
+          {isEvolution ? (
             <Card className="flex flex-col items-center text-center p-8 border-[#00E5A0]/20 bg-[#00E5A0]/5 gap-6">
-              <div className="w-12 h-12 rounded-full bg-[#00E5A0]/20 flex items-center justify-center text-[#00E5A0]">
+               <div className="w-12 h-12 rounded-full bg-[#00E5A0]/20 flex items-center justify-center text-[#00E5A0]">
                 <QrCode size={24} />
               </div>
               <div>
@@ -181,10 +138,10 @@ export default function WhatsAppPage() {
 
               {/* QR Code Display */}
               <div className="w-52 h-52 bg-white p-3 rounded-2xl relative overflow-hidden">
-                {(isRefreshing || isCreating || instanceStatus === 'loading') ? (
+                {(isRefreshing || instanceStatus === 'loading') ? (
                   <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-center p-2">
                     <Loader2 size={32} className="animate-spin text-[#00E5A0]" />
-                    <p className="text-xs text-gray-400">{isCreating ? 'Criando instância...' : 'Carregando...'}</p>
+                    <p className="text-xs text-gray-400">Carregando...</p>
                   </div>
                 ) : qrCode ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -195,8 +152,8 @@ export default function WhatsAppPage() {
                   />
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-center p-2">
-                    <QrCode size={48} className="text-gray-400" />
-                    <p className="text-xs text-gray-500">Clique em Gerar QR Code</p>
+                    <CheckCircle2 size={48} className="text-[#00E5A0]" />
+                    <p className="text-xs text-[#00E5A0] font-bold">Conectado</p>
                   </div>
                 )}
                 <div className="absolute -inset-2 border-2 border-dashed border-[#00E5A0]/40 rounded-[20px] animate-pulse-slow pointer-events-none" />
@@ -204,10 +161,41 @@ export default function WhatsAppPage() {
 
               <Button
                 className="w-full font-bold"
-                onClick={currentInstance ? refresh : handleCreateAndGenerateQr}
-                isLoading={isRefreshing || isCreating}
+                onClick={refresh}
+                isLoading={isRefreshing}
               >
-                <RefreshCcw size={14} className="mr-2" /> Gerar Novo QR Code
+                <RefreshCcw size={14} className="mr-2" /> Recarregar QR Code
+              </Button>
+            </Card>
+          ) : (
+            <Card className="flex flex-col items-center text-center p-8 border-[#6C5DD3]/20 bg-[#6C5DD3]/5 gap-6">
+              <div className="w-16 h-16 rounded-full bg-[#6C5DD3]/10 flex items-center justify-center text-[#6C5DD3]">
+                <ShieldCheck size={32} />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-lg font-bold text-white">Instalação Gerenciada</h3>
+                <p className="text-xs text-[#9CA3AF] leading-relaxed">
+                  Sua instância no plano <b>{userStatus?.plan?.toUpperCase()}</b> é gerenciada automaticamente. Não é necessário escanear QR Code aqui.
+                </p>
+              </div>
+              
+              <div className="w-full pt-4 border-t border-white/5">
+                <p className="text-[10px] text-[#6B7280] uppercase font-bold tracking-widest mb-4">Recursos Ativos</p>
+                <ul className="text-left space-y-3">
+                  <li className="flex items-center gap-2 text-xs text-[#9CA3AF]">
+                    <CheckCircle2 size={14} className="text-[#00E5A0]" /> Respostas Automáticas IA
+                  </li>
+                  <li className="flex items-center gap-2 text-xs text-[#9CA3AF]">
+                    <CheckCircle2 size={14} className="text-[#00E5A0]" /> Suporte Multilingue
+                  </li>
+                  <li className="flex items-center gap-2 text-xs text-[#9CA3AF]">
+                    <CheckCircle2 size={14} className="text-[#00E5A0]" /> Logs de Auditoria
+                  </li>
+                </ul>
+              </div>
+
+              <Button variant="ghost" className="w-full font-bold text-[#6C5DD3]">
+                Alterar Plano
               </Button>
             </Card>
           )}
@@ -216,3 +204,4 @@ export default function WhatsAppPage() {
     </div>
   );
 }
+
