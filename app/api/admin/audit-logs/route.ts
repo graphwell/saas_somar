@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { requireAdmin } from '@/lib/require-admin';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
+  const authError = await requireAdmin();
+  if (authError) return authError;
   try {
     const logs = await prisma.agentAuditLog.findMany({
       take: 60,

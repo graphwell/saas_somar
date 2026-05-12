@@ -34,7 +34,14 @@ export default function LoginPage() {
       if (response?.error) {
         setError("E-mail ou senha inválidos.");
       } else {
-        router.push('/dashboard');
+        // Verifica o role para redirecionar corretamente
+        const sessionRes = await fetch('/api/auth/session');
+        const updatedSession = await sessionRes.json();
+        if (updatedSession?.user?.role === 'ADMIN') {
+          router.push('/admin/dashboard');
+        } else {
+          router.push('/dashboard');
+        }
         router.refresh();
       }
     } catch (err) {

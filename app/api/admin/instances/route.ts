@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Provider, InstancePlan, InstanceStatus } from '@prisma/client';
+import { requireAdmin } from '@/lib/require-admin';
 
 // GET — Listar todas instâncias do pool
 export async function GET() {
+  const authError = await requireAdmin();
+  if (authError) return authError;
   try {
     const instances = await prisma.whatsAppInstance.findMany({
       include: { 
@@ -21,6 +24,8 @@ export async function GET() {
 
 // POST — Adicionar instância manualmente ao pool
 export async function POST(request: Request) {
+  const authError = await requireAdmin();
+  if (authError) return authError;
   try {
     const { provider, instanceKey, apiToken, plan, name } = await request.json();
     
@@ -49,6 +54,8 @@ export async function POST(request: Request) {
 
 // PATCH — Desvincular, desativar, ativar ou atribuir manualmente
 export async function PATCH(request: Request) {
+  const authError = await requireAdmin();
+  if (authError) return authError;
   try {
     const { id, action, userId } = await request.json();
 
@@ -94,6 +101,8 @@ export async function PATCH(request: Request) {
 
 // DELETE — Remover instância do sistema
 export async function DELETE(request: Request) {
+  const authError = await requireAdmin();
+  if (authError) return authError;
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
