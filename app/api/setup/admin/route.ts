@@ -2,29 +2,34 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcrypt';
 
-// Rota de setup único — cria o admin se não existir
-// Remova este arquivo após o primeiro uso
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const secret = searchParams.get('secret');
+// Rota de setup — cria admin e testa conexão com DB
+// Remova este arquivo após uso
+export async function GET() {
+  const results: Record<string, any> = {};
 
-  if (!secret || secret !== process.env.SETUP_SECRET) {
-    return NextResponse.json({ error: 'Chave inválida' }, { status: 403 });
+  // 1. Testa conexão com banco
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    results.db = 'OK';
+  } catch (e: any) {
+    results.db = 'ERRO: ' + e.message;
+    return NextResponse.json(results, { status: 500 });
   }
 
+  // 2. Verifica se admin já existe
   try {
     const existing = await prisma.user.findUnique({
       where: { email: 'admin@somar.ia' },
+      select: { id: true, email: true, role: true },
     });
 
     if (existing) {
-      return NextResponse.json({
-        message: 'Admin já existe.',
-        email: existing.email,
-        role: existing.role,
-      });
+      results.admin = 'já existe';
+      results.user = existing;
+      return NextResponse.json(results);
     }
 
+    // 3. Cria o admin
     const hashed = await bcrypt.hash('adminsomar2025', 12);
     const admin = await prisma.user.create({
       data: {
@@ -33,15 +38,14 @@ export async function GET(request: Request) {
         password: hashed,
         role: 'ADMIN',
       },
+      select: { id: true, email: true, role: true },
     });
 
-    return NextResponse.json({
-      success: true,
-      message: 'Admin criado com sucesso.',
-      email: admin.email,
-      role: admin.role,
-    });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    results.admin = 'criado agora';
+    results.user = admin;
+    return NextResponse.json(results);
+  } catch (e: any) {
+    results.admin = 'ERRO: ' + e.message;
+    return NextResponse.json(results, { status: 500 });
   }
 }
