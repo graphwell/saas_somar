@@ -11,11 +11,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const { data: session, status } = useSession();
 
-  // Página de login do admin não usa o layout com sidebar
-  if (pathname === '/admin/login') {
-    return <>{children}</>;
-  }
-
   // Enquanto carrega a sessão, mostra spinner
   if (status === 'loading') {
     return (

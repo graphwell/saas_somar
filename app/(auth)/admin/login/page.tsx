@@ -16,7 +16,7 @@ export default function AdminLoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Se já está logado como ADMIN, redireciona
+  // Se já está logado como ADMIN, redireciona direto
   useEffect(() => {
     if (status === 'authenticated' && (session?.user as any)?.role === 'ADMIN') {
       const callback = searchParams.get('callbackUrl') ?? '/admin/dashboard';
@@ -42,7 +42,7 @@ export default function AdminLoginPage() {
         return;
       }
 
-      // Busca a sessão atualizada para verificar role
+      // Verifica role após login
       const sessionRes = await fetch('/api/auth/session');
       const updatedSession = await sessionRes.json();
 
@@ -70,13 +70,11 @@ export default function AdminLoginPage() {
 
   return (
     <div className="min-h-screen bg-[#060910] flex items-center justify-center p-6 relative overflow-hidden">
-      {/* Fundo */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#EF4444]/5 via-transparent to-[#6C5DD3]/5 pointer-events-none" />
       <div className="absolute top-[20%] left-[10%] w-96 h-96 bg-[#EF4444] opacity-[0.04] blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[10%] right-[10%] w-80 h-80 bg-[#6C5DD3] opacity-[0.05] blur-[100px] pointer-events-none" />
 
       <div className="relative z-10 w-full max-w-sm">
-        {/* Header */}
         <div className="flex flex-col items-center mb-10">
           <div className="w-16 h-16 rounded-2xl bg-[#EF4444]/10 border border-[#EF4444]/20 flex items-center justify-center mb-5 shadow-lg shadow-[#EF4444]/10">
             <ShieldAlert size={28} className="text-[#EF4444]" />
@@ -87,7 +85,6 @@ export default function AdminLoginPage() {
           </p>
         </div>
 
-        {/* Card */}
         <div className="bg-[#111827] border border-white/5 rounded-2xl p-8 shadow-2xl">
           <form onSubmit={handleSubmit} className="space-y-5">
             <Input
@@ -137,7 +134,6 @@ export default function AdminLoginPage() {
           </form>
         </div>
 
-        {/* Rodapé */}
         <div className="mt-8 flex flex-col items-center gap-3">
           <div className="flex items-center gap-2 text-[10px] text-[#6B7280] font-medium uppercase tracking-widest">
             <div className="w-1.5 h-1.5 rounded-full bg-[#EF4444] animate-pulse" />

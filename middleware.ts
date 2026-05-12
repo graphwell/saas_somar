@@ -2,21 +2,27 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
 export async function middleware(req: NextRequest) {
-  const path = req.nextUrl.pathname;
+  const { pathname } = req.nextUrl;
 
   // Só age em rotas /admin
-  if (!path.startsWith('/admin')) return NextResponse.next();
+  if (!pathname.startsWith('/admin')) return NextResponse.next();
 
-  // Página de login do admin é pública
-  if (path === '/admin/login') return NextResponse.next();
+  // Página de login do admin é sempre pública (agora no grupo (auth), não precisa desta linha,
+  // mas mantemos como segurança para qualquer variação de URL)
+  if (pathname.startsWith('/admin/login')) return NextResponse.next();
 
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const token = await getToken({
+    req,
+    secret: process.env.NEXTAUTH_SECRET,
+    secureCookie: process.env.NODE_ENV === 'production',
+  });
 
   // Sem sessão → redireciona para login admin
   if (!token) {
-    const loginUrl = new URL('/admin/login', req.url);
-    loginUrl.searchParams.set('callbackUrl', path);
-    return NextResponse.redirect(loginUrl);
+    const url = req.nextUrl.clone();
+    url.pathname = '/admin/login';
+    url.searchParams.set('callbackUrl', pathname);
+    return NextResponse.redirect(url);
   }
 
   // Sessão existe mas não é ADMIN → redireciona para dashboard do usuário
@@ -28,5 +34,6 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  // Protege /admin/* mas não /admin/login
+  matcher: ['/admin/((?!login).*)'],
 };
