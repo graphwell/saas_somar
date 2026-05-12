@@ -4,14 +4,13 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import { Users, Server, ShieldAlert, LogOut, Loader2, LayoutDashboard } from 'lucide-react';
-import { useEffect } from 'react';
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+// Sub-componente que contém toda a lógica de sessão — nunca renderizado na login page
+function AdminPanel({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { data: session, status } = useSession();
 
-  // Enquanto carrega a sessão, mostra spinner
   if (status === 'loading') {
     return (
       <div className="min-h-screen bg-[#060910] flex items-center justify-center">
@@ -20,7 +19,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  // Se não tem sessão ou não é ADMIN, redireciona
   if (status === 'unauthenticated' || (session && (session.user as any)?.role !== 'ADMIN')) {
     router.replace('/admin/login');
     return (
@@ -40,7 +38,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="flex h-screen bg-[#060910]">
       <aside className="w-[240px] h-screen bg-[#111827] border-r border-white/5 flex flex-col shrink-0">
-        {/* Logo Admin */}
         <div className="p-5 flex items-center gap-3 border-b border-white/5">
           <div className="w-9 h-9 rounded-lg bg-[#EF4444]/10 flex items-center justify-center shrink-0">
             <ShieldAlert size={18} className="text-[#EF4444]" />
@@ -53,7 +50,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
         </div>
 
-        {/* Sessão do admin */}
         <div className="px-4 py-3 border-b border-white/5">
           <div className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg bg-white/[0.02]">
             <div className="w-7 h-7 rounded-full bg-[#EF4444]/20 flex items-center justify-center text-[#EF4444] font-bold text-xs shrink-0">
@@ -105,9 +101,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </aside>
 
-      <main className="flex-1 overflow-auto p-8">
-        {children}
-      </main>
+      <main className="flex-1 overflow-auto p-8">{children}</main>
     </div>
   );
+}
+
+// Layout raiz — só verifica o pathname, sem hooks de sessão aqui
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+
+  // Na página de login, renderiza apenas o conteúdo sem sidebar nem verificação de sessão
+  if (pathname === '/admin/login') {
+    return <>{children}</>;
+  }
+
+  return <AdminPanel>{children}</AdminPanel>;
 }

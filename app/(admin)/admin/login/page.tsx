@@ -16,7 +16,6 @@ export default function AdminLoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Se já está logado como ADMIN, redireciona direto
   useEffect(() => {
     if (status === 'authenticated' && (session?.user as any)?.role === 'ADMIN') {
       const callback = searchParams.get('callbackUrl') ?? '/admin/dashboard';
@@ -42,12 +41,11 @@ export default function AdminLoginPage() {
         return;
       }
 
-      // Verifica role após login
       const sessionRes = await fetch('/api/auth/session');
       const updatedSession = await sessionRes.json();
 
       if (updatedSession?.user?.role !== 'ADMIN') {
-        setError('Acesso negado. Esta área é exclusiva para administradores.');
+        setError('Acesso negado. Área exclusiva para administradores.');
         setIsLoading(false);
         return;
       }
