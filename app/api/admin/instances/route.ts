@@ -47,29 +47,42 @@ export async function POST(request: Request) {
   }
 }
 
-// PATCH — Desvincular ou desativar instância
+// PATCH — Desvincular, desativar, ativar ou atribuir manualmente
 export async function PATCH(request: Request) {
   try {
-    const { id, action } = await request.json();
-    
+    const { id, action, userId } = await request.json();
+
     if (action === 'unlink') {
       await prisma.whatsAppInstance.update({
         where: { id },
-        data: { 
-          userId: null, 
-          status: InstanceStatus.IDLE,
-          messageCount: 0
-        }
+        data: { userId: null, status: InstanceStatus.IDLE, messageCount: 0 },
       });
     } else if (action === 'disable') {
       await prisma.whatsAppInstance.update({
         where: { id },
-        data: { status: InstanceStatus.DISABLED }
+        data: { status: InstanceStatus.DISABLED },
       });
     } else if (action === 'enable') {
       await prisma.whatsAppInstance.update({
         where: { id },
-        data: { status: InstanceStatus.IDLE }
+        data: { status: InstanceStatus.IDLE },
+      });
+    } else if (action === 'assign') {
+      if (!userId) {
+        return NextResponse.json({ error: 'userId ausente' }, { status: 400 });
+      }
+      const existing = await prisma.whatsAppInstance.findFirst({
+        where: { userId, status: InstanceStatus.IN_USE },
+      });
+      if (existing) {
+        await prisma.whatsAppInstance.update({
+          where: { id: existing.id },
+          data: { userId: null, status: InstanceStatus.IDLE, messageCount: 0 },
+        });
+      }
+      await prisma.whatsAppInstance.update({
+        where: { id },
+        data: { userId, status: InstanceStatus.IN_USE },
       });
     }
 
