@@ -23,12 +23,12 @@ export default function AdminLayout({
       <aside className="w-[240px] h-screen bg-[#111827] border-r border-white/5 flex flex-col shrink-0">
         {/* Logo Admin */}
         <div className="p-6 flex items-center gap-3 border-b border-white/5">
-          <div className="w-8 h-8 rounded-lg bg-[#EF4444]/10 flex items-center justify-center">
-            <ShieldAlert size={16} className="text-[#EF4444]" />
+          <div className="w-16 h-16 rounded-lg bg-[#EF4444]/10 flex items-center justify-center">
+            <ShieldAlert size={32} className="text-[#EF4444]" />
           </div>
-          <span className="text-sm font-bold text-white tracking-tight">
+          <span className="text-[28px] font-bold text-white tracking-tight">
             Somar<span className="text-[#EF4444]">.IA</span>{' '}
-            <span className="text-[10px] text-[#6B7280] font-normal">ADMIN</span>
+            <span className="text-[20px] text-[#6B7280] font-normal">ADMIN</span>
           </span>
         </div>
 

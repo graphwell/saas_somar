@@ -54,7 +54,7 @@ export default function LoginPage() {
         
         <div className="relative z-10 max-w-md">
           <Link href="/" className="mb-12 block hover:opacity-90 transition-opacity">
-            <img src="/logo.png" alt="Somar.IA" className="h-14 w-auto object-contain drop-shadow-lg" />
+            <img src="/logo.png" alt="Somar.IA" className="h-28 w-auto object-contain drop-shadow-lg" />
           </Link>
           
           <h2 className="text-5xl font-bold text-white mb-8 leading-tight">

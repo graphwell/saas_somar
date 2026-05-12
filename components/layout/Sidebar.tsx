@@ -45,7 +45,7 @@ export const Sidebar = () => {
       {/* Logo */}
       <div className="p-6">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <img src="/logo.png" alt="Somar.IA" className="h-8 w-auto object-contain drop-shadow-md" />
+          <img src="/logo.png" alt="Somar.IA" className="h-16 w-auto object-contain drop-shadow-md" />
         </Link>
       </div>
 

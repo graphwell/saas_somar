@@ -87,7 +87,7 @@ export default function RegisterPage() {
         <div className="absolute top-[30%] right-[10%] w-96 h-96 bg-[#00E5A0] opacity-[0.05] blur-[120px]" />
         
         <div className="relative z-10 max-w-md">
-          <Link href="/" className="text-4xl font-extrabold text-white mb-12 block tracking-tight">
+          <Link href="/" className="text-7xl font-extrabold text-white mb-12 block tracking-tight">
             Somar<span className="text-[#00E5A0]">.IA</span>
           </Link>
           

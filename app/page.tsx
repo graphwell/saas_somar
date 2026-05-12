@@ -33,12 +33,12 @@ export default function LandingPage() {
         <div className="max-w-[1100px] mx-auto px-6 h-full flex items-center justify-between">
           <div className="flex items-center gap-10">
             <Link href="/">
-              <Image 
-                src="/Logo Soma2.png" 
-                alt="Somar.IA" 
-                width={120} 
-                height={40} 
-                className="h-10 w-auto object-contain"
+              <Image
+                src="/Logo Soma2.png"
+                alt="Somar.IA"
+                width={240}
+                height={80}
+                className="h-20 w-auto object-contain"
                 priority
               />
             </Link>
@@ -356,12 +356,12 @@ export default function LandingPage() {
         <div className="max-w-[1100px] mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-12 opacity-80 transition-base hover:opacity-100">
            <div className="flex flex-col items-center md:items-start gap-4">
               <Link href="/">
-                <Image 
-                  src="/Logo Soma2.png" 
-                  alt="Somar.IA" 
-                  width={100} 
-                  height={32} 
-                  className="h-8 w-auto object-contain brightness-0 invert opacity-80"
+                <Image
+                  src="/Logo Soma2.png"
+                  alt="Somar.IA"
+                  width={200}
+                  height={64}
+                  className="h-16 w-auto object-contain brightness-0 invert opacity-80"
                 />
               </Link>
               <p className="text-text-muted text-xs text-center md:text-left max-w-[300px] leading-relaxed font-medium">
