@@ -4,18 +4,38 @@ import { NextResponse } from "next/server";
 export default withAuth(
   function middleware(req) {
     const token = req.nextauth.token;
-    const isAuth = !!token;
-    const isAdminPage = req.nextUrl.pathname.startsWith("/admin");
+    const { pathname } = req.nextUrl;
 
-    if (isAdminPage && token?.role !== "ADMIN") {
-      return NextResponse.redirect(new URL("/dashboard", req.url));
+    // Login admin sempre acessível (sem autenticação)
+    if (pathname === "/admin/login") return NextResponse.next();
+
+    // Rotas /admin/* exigem autenticação E role ADMIN
+    if (pathname.startsWith("/admin")) {
+      if (!token) {
+        const url = req.nextUrl.clone();
+        url.pathname = "/admin/login";
+        url.searchParams.set("callbackUrl", pathname);
+        return NextResponse.redirect(url);
+      }
+      if (token.role !== "ADMIN") {
+        return NextResponse.redirect(new URL("/dashboard", req.url));
+      }
+    }
+
+    // Rotas do usuário exigem apenas autenticação
+    if (!token) {
+      const url = req.nextUrl.clone();
+      url.pathname = "/login";
+      url.searchParams.set("callbackUrl", pathname);
+      return NextResponse.redirect(url);
     }
 
     return NextResponse.next();
   },
   {
     callbacks: {
-      authorized: ({ token }) => !!token,
+      // Deixa tudo passar — a lógica de redirect está no middleware acima
+      authorized: () => true,
     },
   }
 );
@@ -28,6 +48,7 @@ export const config = {
     "/conversas/:path*",
     "/whatsapp/:path*",
     "/plano/:path*",
+    "/configuracoes/:path*",
     "/onboarding/:path*",
   ],
 };
