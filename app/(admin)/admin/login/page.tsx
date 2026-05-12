@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { signIn, useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -11,19 +11,26 @@ import {
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
+// ──────────────────────────────────
+// Relógio em tempo real
+// ──────────────────────────────────
 function Clock() {
   const [time, setTime] = useState('');
   const [date, setDate] = useState('');
+
   useEffect(() => {
     const tick = () => {
       const now = new Date();
       setTime(now.toLocaleTimeString('pt-BR'));
-      setDate(now.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }));
+      setDate(now.toLocaleDateString('pt-BR', {
+        weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
+      }));
     };
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, []);
+
   return (
     <div className="font-mono">
       <div className="text-4xl font-black text-white tracking-widest tabular-nums">{time}</div>
@@ -32,7 +39,10 @@ function Clock() {
   );
 }
 
-const systemLines = [
+// ──────────────────────────────────
+// Terminal animado de boot
+// ──────────────────────────────────
+const BOOT_LINES = [
   '> Inicializando Somar Admin Console...',
   '> Conectando ao banco de dados PostgreSQL...',
   '> Carregando módulos de segurança...',
@@ -40,17 +50,15 @@ const systemLines = [
   '> Sistema operacional. Aguardando autenticação.',
 ];
 
-function Terminal_() {
+function BootTerminal() {
   const [lines, setLines] = useState<string[]>([]);
+
   useEffect(() => {
     let i = 0;
     const id = setInterval(() => {
-      if (i < systemLines.length) {
-        setLines(prev => [...prev, systemLines[i]]);
-        i++;
-      } else {
-        clearInterval(id);
-      }
+      setLines(prev => [...prev, BOOT_LINES[i]]);
+      i++;
+      if (i >= BOOT_LINES.length) clearInterval(id);
     }, 400);
     return () => clearInterval(id);
   }, []);
@@ -58,21 +66,26 @@ function Terminal_() {
   return (
     <div className="bg-black/40 border border-white/5 rounded-xl p-4 font-mono text-[11px] space-y-1.5 min-h-[130px]">
       {lines.map((line, i) => (
-        <div key={i} className={`flex items-start gap-2 ${i === lines.length - 1 ? 'text-[#00E5A0]' : 'text-[#6B7280]'}`}>
+        <div
+          key={i}
+          className={`flex items-start gap-2 ${i === lines.length - 1 ? 'text-[#00E5A0]' : 'text-[#6B7280]'}`}
+        >
           <span className="opacity-40 shrink-0">{String(i + 1).padStart(2, '0')}</span>
           <span>{line}</span>
         </div>
       ))}
-      {lines.length === systemLines.length && (
-        <div className="text-[#EF4444] flex items-center gap-1 mt-1">
-          <span className="w-2 h-3 bg-[#EF4444] inline-block animate-pulse" />
-        </div>
+      {lines.length === BOOT_LINES.length && (
+        <span className="inline-block w-2 h-3 bg-[#EF4444] animate-pulse mt-1" />
       )}
     </div>
   );
 }
 
-export default function AdminLoginPage() {
+// ──────────────────────────────────
+// Formulário — usa useSearchParams
+// (precisa estar dentro de <Suspense>)
+// ──────────────────────────────────
+function AdminLoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
@@ -120,34 +133,78 @@ export default function AdminLoginPage() {
     }
   };
 
-  if (status === 'loading') {
-    return (
-      <div className="min-h-screen bg-[#060910] flex items-center justify-center">
-        <Loader2 size={28} className="animate-spin text-[#EF4444]" />
-      </div>
-    );
-  }
+  return (
+    <div className="bg-[#111827] border border-white/5 rounded-2xl p-7 shadow-2xl shadow-black/40 space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <Input
+          label="E-mail"
+          name="email"
+          type="email"
+          placeholder="admin@somar.ia"
+          required
+          icon={<Mail size={15} />}
+          autoComplete="username"
+        />
 
+        <div className="relative">
+          <Input
+            label="Senha"
+            name="password"
+            type={showPassword ? 'text' : 'password'}
+            placeholder="••••••••"
+            required
+            icon={<Lock size={15} />}
+            autoComplete="current-password"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-[34px] text-[#6B7280] hover:text-white transition-colors"
+          >
+            {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+          </button>
+        </div>
+
+        {error && (
+          <div className="flex items-start gap-3 bg-[#EF4444]/10 border border-[#EF4444]/20 text-[#EF4444] text-xs font-medium px-4 py-3 rounded-xl">
+            <AlertTriangle size={13} className="shrink-0 mt-0.5" />
+            {error}
+          </div>
+        )}
+
+        <Button
+          type="submit"
+          size="lg"
+          className="w-full bg-[#EF4444] hover:bg-[#dc2626] text-white font-bold shadow-lg shadow-[#EF4444]/25"
+          isLoading={isLoading}
+        >
+          {isLoading ? 'Autenticando...' : 'Entrar no Painel'}
+        </Button>
+      </form>
+    </div>
+  );
+}
+
+// ──────────────────────────────────
+// Página principal
+// ──────────────────────────────────
+export default function AdminLoginPage() {
   return (
     <div className="min-h-screen flex bg-[#060910]">
 
-      {/* ── Painel Esquerdo — Console / Sistema ── */}
+      {/* Painel Esquerdo — Console */}
       <div className="hidden lg:flex lg:w-[55%] flex-col relative overflow-hidden bg-[#080C18] border-r border-white/5 p-12">
-
-        {/* Grid de fundo */}
         <div
           className="absolute inset-0 opacity-[0.03]"
           style={{
-            backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)',
+            backgroundImage: 'linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px)',
             backgroundSize: '40px 40px',
           }}
         />
-
-        {/* Glow vermelho */}
         <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-[#EF4444] opacity-[0.04] blur-[150px] pointer-events-none" />
         <div className="absolute bottom-0 right-0 w-[300px] h-[300px] bg-[#6C5DD3] opacity-[0.05] blur-[120px] pointer-events-none" />
 
-        {/* Topo */}
+        {/* Header */}
         <div className="relative z-10 flex items-center justify-between mb-12">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-[#EF4444]/10 border border-[#EF4444]/20 flex items-center justify-center">
@@ -164,21 +221,16 @@ export default function AdminLoginPage() {
           </div>
         </div>
 
-        {/* Relógio */}
-        <div className="relative z-10 mb-10">
-          <Clock />
-        </div>
+        <div className="relative z-10 mb-10"><Clock /></div>
 
-        {/* Terminal animado */}
         <div className="relative z-10 mb-8">
           <div className="flex items-center gap-2 mb-3">
             <Terminal size={13} className="text-[#6B7280]" />
             <span className="text-[10px] font-bold text-[#6B7280] uppercase tracking-widest">Sistema</span>
           </div>
-          <Terminal_ />
+          <BootTerminal />
         </div>
 
-        {/* Status cards */}
         <div className="relative z-10 grid grid-cols-2 gap-3">
           {[
             { icon: Server, label: 'Servidor', value: 'Online', color: '#00E5A0' },
@@ -196,7 +248,6 @@ export default function AdminLoginPage() {
           ))}
         </div>
 
-        {/* Rodapé esquerdo */}
         <div className="relative z-10 mt-auto pt-8 border-t border-white/5">
           <p className="text-[10px] text-[#6B7280] font-mono">
             © {new Date().getFullYear()} Somar.IA · Acesso restrito e monitorado
@@ -204,15 +255,11 @@ export default function AdminLoginPage() {
         </div>
       </div>
 
-      {/* ── Painel Direito — Formulário ── */}
+      {/* Painel Direito — Formulário */}
       <div className="w-full lg:w-[45%] flex flex-col items-center justify-center p-8 sm:p-12 relative">
-
-        {/* Glow de fundo */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-[#EF4444] opacity-[0.04] blur-[100px] pointer-events-none" />
 
         <div className="relative z-10 w-full max-w-sm">
-
-          {/* Header do formulário */}
           <div className="mb-8">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#EF4444]/10 border border-[#EF4444]/20 mb-6">
               <ShieldAlert size={12} className="text-[#EF4444]" />
@@ -227,57 +274,15 @@ export default function AdminLoginPage() {
             </p>
           </div>
 
-          {/* Formulário */}
-          <div className="bg-[#111827] border border-white/5 rounded-2xl p-7 shadow-2xl shadow-black/40 space-y-5">
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <Input
-                label="E-mail"
-                name="email"
-                type="email"
-                placeholder="admin@somar.ia"
-                required
-                icon={<Mail size={15} />}
-                autoComplete="username"
-              />
+          {/* Formulário envolto em Suspense por causa do useSearchParams */}
+          <Suspense fallback={
+            <div className="bg-[#111827] border border-white/5 rounded-2xl p-7 flex items-center justify-center">
+              <Loader2 size={24} className="animate-spin text-[#EF4444]" />
+            </div>
+          }>
+            <AdminLoginForm />
+          </Suspense>
 
-              <div className="relative">
-                <Input
-                  label="Senha"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
-                  required
-                  icon={<Lock size={15} />}
-                  autoComplete="current-password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-[34px] text-[#6B7280] hover:text-white transition-colors"
-                >
-                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                </button>
-              </div>
-
-              {error && (
-                <div className="flex items-start gap-3 bg-[#EF4444]/10 border border-[#EF4444]/20 text-[#EF4444] text-xs font-medium px-4 py-3 rounded-xl">
-                  <AlertTriangle size={13} className="shrink-0 mt-0.5" />
-                  {error}
-                </div>
-              )}
-
-              <Button
-                type="submit"
-                size="lg"
-                className="w-full bg-[#EF4444] hover:bg-[#dc2626] text-white font-bold shadow-lg shadow-[#EF4444]/25 transition-all"
-                isLoading={isLoading}
-              >
-                {isLoading ? 'Autenticando...' : 'Entrar no Painel'}
-              </Button>
-            </form>
-          </div>
-
-          {/* Aviso de segurança */}
           <div className="mt-6 bg-[#EF4444]/5 border border-[#EF4444]/10 rounded-xl px-4 py-3 flex items-start gap-3">
             <AlertTriangle size={13} className="text-[#EF4444] shrink-0 mt-0.5" />
             <p className="text-[10px] text-[#9CA3AF] leading-relaxed">
@@ -285,7 +290,6 @@ export default function AdminLoginPage() {
             </p>
           </div>
 
-          {/* Link para login normal */}
           <div className="mt-6 text-center">
             <a href="/login" className="text-xs text-[#6B7280] hover:text-white transition-colors">
               ← Voltar ao login de usuário
