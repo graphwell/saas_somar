@@ -7,8 +7,7 @@ export async function middleware(req: NextRequest) {
   // Só age em rotas /admin
   if (!pathname.startsWith('/admin')) return NextResponse.next();
 
-  // Página de login do admin é sempre pública (agora no grupo (auth), não precisa desta linha,
-  // mas mantemos como segurança para qualquer variação de URL)
+  // Login admin é público — passa sem verificação
   if (pathname.startsWith('/admin/login')) return NextResponse.next();
 
   const token = await getToken({
@@ -25,7 +24,7 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Sessão existe mas não é ADMIN → redireciona para dashboard do usuário
+  // Tem sessão mas não é ADMIN → dashboard do usuário
   if (token.role !== 'ADMIN') {
     return NextResponse.redirect(new URL('/dashboard', req.url));
   }
@@ -34,6 +33,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  // Protege /admin/* mas não /admin/login
-  matcher: ['/admin/((?!login).*)'],
+  matcher: ['/admin/:path*'],
 };
