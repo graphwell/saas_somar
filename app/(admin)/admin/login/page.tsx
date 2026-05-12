@@ -3,9 +3,74 @@
 import React, { useState, useEffect } from 'react';
 import { signIn, useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ShieldAlert, Mail, Lock, Eye, EyeOff, AlertTriangle, Loader2 } from 'lucide-react';
+import {
+  ShieldAlert, Mail, Lock, Eye, EyeOff,
+  AlertTriangle, Loader2, Terminal, Activity,
+  Server, Users, Wifi,
+} from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+
+function Clock() {
+  const [time, setTime] = useState('');
+  const [date, setDate] = useState('');
+  useEffect(() => {
+    const tick = () => {
+      const now = new Date();
+      setTime(now.toLocaleTimeString('pt-BR'));
+      setDate(now.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }));
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
+  return (
+    <div className="font-mono">
+      <div className="text-4xl font-black text-white tracking-widest tabular-nums">{time}</div>
+      <div className="text-xs text-[#6B7280] mt-1 capitalize">{date}</div>
+    </div>
+  );
+}
+
+const systemLines = [
+  '> Inicializando Somar Admin Console...',
+  '> Conectando ao banco de dados PostgreSQL...',
+  '> Carregando módulos de segurança...',
+  '> Verificando integridade do sistema...',
+  '> Sistema operacional. Aguardando autenticação.',
+];
+
+function Terminal_() {
+  const [lines, setLines] = useState<string[]>([]);
+  useEffect(() => {
+    let i = 0;
+    const id = setInterval(() => {
+      if (i < systemLines.length) {
+        setLines(prev => [...prev, systemLines[i]]);
+        i++;
+      } else {
+        clearInterval(id);
+      }
+    }, 400);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <div className="bg-black/40 border border-white/5 rounded-xl p-4 font-mono text-[11px] space-y-1.5 min-h-[130px]">
+      {lines.map((line, i) => (
+        <div key={i} className={`flex items-start gap-2 ${i === lines.length - 1 ? 'text-[#00E5A0]' : 'text-[#6B7280]'}`}>
+          <span className="opacity-40 shrink-0">{String(i + 1).padStart(2, '0')}</span>
+          <span>{line}</span>
+        </div>
+      ))}
+      {lines.length === systemLines.length && (
+        <div className="text-[#EF4444] flex items-center gap-1 mt-1">
+          <span className="w-2 h-3 bg-[#EF4444] inline-block animate-pulse" />
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -18,8 +83,7 @@ export default function AdminLoginPage() {
 
   useEffect(() => {
     if (status === 'authenticated' && (session?.user as any)?.role === 'ADMIN') {
-      const callback = searchParams.get('callbackUrl') ?? '/admin/dashboard';
-      router.replace(callback);
+      router.replace(searchParams.get('callbackUrl') ?? '/admin/dashboard');
     }
   }, [status, session, router, searchParams]);
 
@@ -27,13 +91,14 @@ export default function AdminLoginPage() {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-
-    const data = new FormData(e.currentTarget);
-    const email = data.get('email') as string;
-    const password = data.get('password') as string;
+    const fd = new FormData(e.currentTarget);
 
     try {
-      const res = await signIn('credentials', { email, password, redirect: false });
+      const res = await signIn('credentials', {
+        email: fd.get('email') as string,
+        password: fd.get('password') as string,
+        redirect: false,
+      });
 
       if (res?.error) {
         setError('Credenciais inválidas.');
@@ -41,19 +106,16 @@ export default function AdminLoginPage() {
         return;
       }
 
-      const sessionRes = await fetch('/api/auth/session');
-      const updatedSession = await sessionRes.json();
-
-      if (updatedSession?.user?.role !== 'ADMIN') {
+      const s = await fetch('/api/auth/session').then(r => r.json());
+      if (s?.user?.role !== 'ADMIN') {
         setError('Acesso negado. Área exclusiva para administradores.');
         setIsLoading(false);
         return;
       }
 
-      const callback = searchParams.get('callbackUrl') ?? '/admin/dashboard';
-      router.replace(callback);
+      router.replace(searchParams.get('callbackUrl') ?? '/admin/dashboard');
     } catch {
-      setError('Erro ao tentar acessar. Tente novamente.');
+      setError('Erro de conexão. Tente novamente.');
       setIsLoading(false);
     }
   };
@@ -61,85 +123,174 @@ export default function AdminLoginPage() {
   if (status === 'loading') {
     return (
       <div className="min-h-screen bg-[#060910] flex items-center justify-center">
-        <Loader2 size={32} className="animate-spin text-[#EF4444]" />
+        <Loader2 size={28} className="animate-spin text-[#EF4444]" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#060910] flex items-center justify-center p-6 relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-[#EF4444]/5 via-transparent to-[#6C5DD3]/5 pointer-events-none" />
-      <div className="absolute top-[20%] left-[10%] w-96 h-96 bg-[#EF4444] opacity-[0.04] blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[10%] right-[10%] w-80 h-80 bg-[#6C5DD3] opacity-[0.05] blur-[100px] pointer-events-none" />
+    <div className="min-h-screen flex bg-[#060910]">
 
-      <div className="relative z-10 w-full max-w-sm">
-        <div className="flex flex-col items-center mb-10">
-          <div className="w-16 h-16 rounded-2xl bg-[#EF4444]/10 border border-[#EF4444]/20 flex items-center justify-center mb-5 shadow-lg shadow-[#EF4444]/10">
-            <ShieldAlert size={28} className="text-[#EF4444]" />
+      {/* ── Painel Esquerdo — Console / Sistema ── */}
+      <div className="hidden lg:flex lg:w-[55%] flex-col relative overflow-hidden bg-[#080C18] border-r border-white/5 p-12">
+
+        {/* Grid de fundo */}
+        <div
+          className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)',
+            backgroundSize: '40px 40px',
+          }}
+        />
+
+        {/* Glow vermelho */}
+        <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-[#EF4444] opacity-[0.04] blur-[150px] pointer-events-none" />
+        <div className="absolute bottom-0 right-0 w-[300px] h-[300px] bg-[#6C5DD3] opacity-[0.05] blur-[120px] pointer-events-none" />
+
+        {/* Topo */}
+        <div className="relative z-10 flex items-center justify-between mb-12">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-[#EF4444]/10 border border-[#EF4444]/20 flex items-center justify-center">
+              <ShieldAlert size={15} className="text-[#EF4444]" />
+            </div>
+            <div>
+              <p className="text-xs font-black text-white tracking-widest uppercase">Somar.IA</p>
+              <p className="text-[9px] text-[#EF4444] font-bold tracking-[0.3em] uppercase">Admin Console</p>
+            </div>
           </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Acesso Restrito</h1>
-          <p className="text-[#6B7280] text-sm mt-1.5 text-center">
-            Área exclusiva para administradores da plataforma.
+          <div className="flex items-center gap-1.5">
+            <div className="w-2 h-2 rounded-full bg-[#EF4444] animate-pulse" />
+            <span className="text-[10px] font-bold text-[#EF4444] uppercase tracking-widest">Monitorado</span>
+          </div>
+        </div>
+
+        {/* Relógio */}
+        <div className="relative z-10 mb-10">
+          <Clock />
+        </div>
+
+        {/* Terminal animado */}
+        <div className="relative z-10 mb-8">
+          <div className="flex items-center gap-2 mb-3">
+            <Terminal size={13} className="text-[#6B7280]" />
+            <span className="text-[10px] font-bold text-[#6B7280] uppercase tracking-widest">Sistema</span>
+          </div>
+          <Terminal_ />
+        </div>
+
+        {/* Status cards */}
+        <div className="relative z-10 grid grid-cols-2 gap-3">
+          {[
+            { icon: Server, label: 'Servidor', value: 'Online', color: '#00E5A0' },
+            { icon: Wifi, label: 'Conexão', value: 'Segura', color: '#00E5A0' },
+            { icon: Activity, label: 'Ambiente', value: 'Produção', color: '#F59E0B' },
+            { icon: Users, label: 'Acesso', value: 'Restrito', color: '#EF4444' },
+          ].map(item => (
+            <div key={item.label} className="bg-white/[0.02] border border-white/5 rounded-xl px-4 py-3 flex items-center gap-3">
+              <item.icon size={14} style={{ color: item.color }} className="shrink-0" />
+              <div>
+                <p className="text-[9px] text-[#6B7280] font-bold uppercase tracking-widest">{item.label}</p>
+                <p className="text-xs font-bold text-white">{item.value}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Rodapé esquerdo */}
+        <div className="relative z-10 mt-auto pt-8 border-t border-white/5">
+          <p className="text-[10px] text-[#6B7280] font-mono">
+            © {new Date().getFullYear()} Somar.IA · Acesso restrito e monitorado
           </p>
         </div>
+      </div>
 
-        <div className="bg-[#111827] border border-white/5 rounded-2xl p-8 shadow-2xl">
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <Input
-              label="E-mail Admin"
-              name="email"
-              type="email"
-              placeholder="admin@somar.ia"
-              required
-              icon={<Mail size={16} />}
-              autoComplete="username"
-            />
+      {/* ── Painel Direito — Formulário ── */}
+      <div className="w-full lg:w-[45%] flex flex-col items-center justify-center p-8 sm:p-12 relative">
 
-            <div className="relative">
-              <Input
-                label="Senha"
-                name="password"
-                type={showPassword ? 'text' : 'password'}
-                placeholder="••••••••"
-                required
-                icon={<Lock size={16} />}
-                autoComplete="current-password"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-[34px] text-[#6B7280] hover:text-white transition-colors"
-              >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
+        {/* Glow de fundo */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-[#EF4444] opacity-[0.04] blur-[100px] pointer-events-none" />
+
+        <div className="relative z-10 w-full max-w-sm">
+
+          {/* Header do formulário */}
+          <div className="mb-8">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#EF4444]/10 border border-[#EF4444]/20 mb-6">
+              <ShieldAlert size={12} className="text-[#EF4444]" />
+              <span className="text-[10px] font-black text-[#EF4444] uppercase tracking-widest">Acesso Restrito</span>
             </div>
-
-            {error && (
-              <div className="flex items-start gap-3 bg-[#EF4444]/10 border border-[#EF4444]/20 text-[#EF4444] text-xs font-medium px-4 py-3 rounded-xl">
-                <AlertTriangle size={14} className="shrink-0 mt-0.5" />
-                {error}
-              </div>
-            )}
-
-            <Button
-              type="submit"
-              className="w-full bg-[#EF4444] hover:bg-[#EF4444]/90 text-white font-bold shadow-lg shadow-[#EF4444]/20 mt-2"
-              isLoading={isLoading}
-              size="lg"
-            >
-              {isLoading ? 'Verificando...' : 'Acessar Painel'}
-            </Button>
-          </form>
-        </div>
-
-        <div className="mt-8 flex flex-col items-center gap-3">
-          <div className="flex items-center gap-2 text-[10px] text-[#6B7280] font-medium uppercase tracking-widest">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#EF4444] animate-pulse" />
-            Zona de acesso monitorado
+            <h1 className="text-3xl font-black text-white tracking-tight leading-none mb-2">
+              Painel<br />
+              <span className="text-[#EF4444]">Administrativo</span>
+            </h1>
+            <p className="text-sm text-[#6B7280] mt-3">
+              Autentique-se com suas credenciais de administrador.
+            </p>
           </div>
-          <a href="/login" className="text-xs text-[#6B7280] hover:text-white transition-colors">
-            ← Voltar ao login de usuário
-          </a>
+
+          {/* Formulário */}
+          <div className="bg-[#111827] border border-white/5 rounded-2xl p-7 shadow-2xl shadow-black/40 space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <Input
+                label="E-mail"
+                name="email"
+                type="email"
+                placeholder="admin@somar.ia"
+                required
+                icon={<Mail size={15} />}
+                autoComplete="username"
+              />
+
+              <div className="relative">
+                <Input
+                  label="Senha"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  required
+                  icon={<Lock size={15} />}
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-[34px] text-[#6B7280] hover:text-white transition-colors"
+                >
+                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </div>
+
+              {error && (
+                <div className="flex items-start gap-3 bg-[#EF4444]/10 border border-[#EF4444]/20 text-[#EF4444] text-xs font-medium px-4 py-3 rounded-xl">
+                  <AlertTriangle size={13} className="shrink-0 mt-0.5" />
+                  {error}
+                </div>
+              )}
+
+              <Button
+                type="submit"
+                size="lg"
+                className="w-full bg-[#EF4444] hover:bg-[#dc2626] text-white font-bold shadow-lg shadow-[#EF4444]/25 transition-all"
+                isLoading={isLoading}
+              >
+                {isLoading ? 'Autenticando...' : 'Entrar no Painel'}
+              </Button>
+            </form>
+          </div>
+
+          {/* Aviso de segurança */}
+          <div className="mt-6 bg-[#EF4444]/5 border border-[#EF4444]/10 rounded-xl px-4 py-3 flex items-start gap-3">
+            <AlertTriangle size={13} className="text-[#EF4444] shrink-0 mt-0.5" />
+            <p className="text-[10px] text-[#9CA3AF] leading-relaxed">
+              Esta área é monitorada. Tentativas de acesso não autorizado são registradas e podem resultar em bloqueio permanente.
+            </p>
+          </div>
+
+          {/* Link para login normal */}
+          <div className="mt-6 text-center">
+            <a href="/login" className="text-xs text-[#6B7280] hover:text-white transition-colors">
+              ← Voltar ao login de usuário
+            </a>
+          </div>
         </div>
       </div>
     </div>
