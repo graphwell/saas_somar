@@ -14,11 +14,13 @@ enum UserRole {
 }
 
 model User {
-  id       String   @id @default(uuid())
-  name     String
-  email    String   @unique
-  password String?  // Nullable para suportar login via Google OAuth
-  role     UserRole @default(USER)
+  id            String    @id @default(uuid())
+  name          String
+  email         String    @unique
+  emailVerified DateTime?           // Exigido pelo PrismaAdapter (NextAuth)
+  image         String?             // Exigido pelo PrismaAdapter (NextAuth)
+  password      String?             // Nullable para suportar login via Google OAuth
+  role          UserRole  @default(USER)
 
   // NextAuth OAuth
   accounts Account[]

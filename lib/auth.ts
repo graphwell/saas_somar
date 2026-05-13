@@ -6,67 +6,68 @@ import { prisma } from './prisma';
 import bcrypt from 'bcrypt';
 import { NextAuthOptions } from 'next-auth';
 
-const providers = [];
-
-// Credentials (email + senha) — sempre ativo
-providers.push(
-  CredentialsProvider({
-    name: 'credentials',
-    credentials: {
-      email: { label: 'Email', type: 'text' },
-      password: { label: 'Senha', type: 'password' },
-    },
-    async authorize(credentials) {
-      if (!credentials?.email || !credentials?.password) {
-        throw new Error('Email e senha obrigatórios.');
-      }
-
-      const user = await prisma.user.findUnique({
-        where: { email: credentials.email },
-      });
-
-      if (!user || !user.password) {
-        throw new Error('Usuário não encontrado ou sem senha configurada.');
-      }
-
-      const isPasswordCorrect = await bcrypt.compare(credentials.password, user.password);
-      if (!isPasswordCorrect) throw new Error('Senha incorreta.');
-
-      return { id: user.id, email: user.email, name: user.name, role: user.role };
-    },
-  })
-);
-
-// Google OAuth — só ativo se as variáveis estiverem configuradas
-if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-  providers.push(
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      profile(profile) {
-        return {
-          id: profile.sub,
-          name: profile.name,
-          email: profile.email,
-          image: profile.picture,
-          role: 'USER',
-        };
-      },
-    })
-  );
-}
+const googleEnabled =
+  !!process.env.GOOGLE_CLIENT_ID && !!process.env.GOOGLE_CLIENT_SECRET;
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
-  providers,
+  // Adapter só ativo quando Google OAuth está configurado
+  // Com credentials puro + JWT, o adapter causa conflito
+  ...(googleEnabled ? { adapter: PrismaAdapter(prisma) } : {}),
+
+  providers: [
+    CredentialsProvider({
+      name: 'credentials',
+      credentials: {
+        email: { label: 'Email', type: 'text' },
+        password: { label: 'Senha', type: 'password' },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error('Email e senha obrigatórios.');
+        }
+
+        const user = await prisma.user.findUnique({
+          where: { email: credentials.email.trim().toLowerCase() },
+        });
+
+        if (!user) throw new Error('E-mail não encontrado.');
+        if (!user.password) throw new Error('Esta conta usa login social. Entre com Google.');
+
+        const ok = await bcrypt.compare(credentials.password, user.password);
+        if (!ok) throw new Error('Senha incorreta.');
+
+        return { id: user.id, email: user.email, name: user.name, role: user.role };
+      },
+    }),
+
+    ...(googleEnabled
+      ? [
+          GoogleProvider({
+            clientId: process.env.GOOGLE_CLIENT_ID!,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+            profile(profile) {
+              return {
+                id: profile.sub,
+                name: profile.name,
+                email: profile.email,
+                image: profile.picture,
+                role: 'USER',
+              };
+            },
+          }),
+        ]
+      : []),
+  ],
+
   callbacks: {
     async jwt({ token, user, account, trigger, session }) {
+      // Primeiro login — popula o token com id e role
       if (user) {
         token.id = user.id;
         token.role = (user as any).role ?? 'USER';
       }
 
-      // Após login Google, busca o role do DB
+      // Após login Google, garante que role vem do banco
       if (account?.provider === 'google' && token.email) {
         const dbUser = await prisma.user.findUnique({
           where: { email: token.email },
@@ -84,6 +85,7 @@ export const authOptions: NextAuthOptions = {
 
       return token;
     },
+
     async session({ session, token }) {
       if (session.user) {
         (session.user as any).id = token.id;
@@ -92,18 +94,14 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
 
-    // Após login Google: cria subscription trial se for usuário novo
+    // Após login Google: cria subscription + agente para novos usuários
     async signIn({ user, account }) {
       if (account?.provider === 'google' && user.email) {
         try {
-          const existing = await prisma.subscription.findFirst({
-            where: { user: { email: user.email } },
-          });
-          if (!existing) {
-            const dbUser = await prisma.user.findUnique({
-              where: { email: user.email },
-            });
-            if (dbUser) {
+          const dbUser = await prisma.user.findUnique({ where: { email: user.email } });
+          if (dbUser) {
+            const hasSub = await prisma.subscription.findUnique({ where: { userId: dbUser.id } });
+            if (!hasSub) {
               await prisma.subscription.create({
                 data: {
                   userId: dbUser.id,
@@ -124,15 +122,14 @@ export const authOptions: NextAuthOptions = {
             }
           }
         } catch (err) {
-          console.error('GOOGLE_SIGNIN_SETUP:', err);
+          console.error('[GOOGLE_SIGNIN_SETUP]', err);
         }
       }
       return true;
     },
   },
-  session: {
-    strategy: 'jwt',
-  },
+
+  session: { strategy: 'jwt' },
   secret: process.env.NEXTAUTH_SECRET,
   pages: {
     signIn: '/login',
