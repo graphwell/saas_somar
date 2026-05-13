@@ -17,10 +17,13 @@ model User {
   id       String   @id @default(uuid())
   name     String
   email    String   @unique
-  password String // Senha (substituindo o "senha" anterior para manter inglês)
+  password String?  // Nullable para suportar login via Google OAuth
   role     UserRole @default(USER)
 
-  // Relacionamentos Multi-tenant (O Usuário é o dono de tudo abaixo)
+  // NextAuth OAuth
+  accounts Account[]
+
+  // Relacionamentos Multi-tenant
   subscription Subscription?
   instances    WhatsAppInstance[]
   agents       Agent[]
@@ -28,6 +31,26 @@ model User {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Tabela necessária para OAuth (Google, etc.)
+model Account {
+  id                String  @id @default(uuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
 }
 
 // ==========================================

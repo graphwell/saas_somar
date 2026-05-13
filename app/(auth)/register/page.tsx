@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { User, Mail, Lock, CheckCircle2, Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { signIn } from 'next-auth/react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
@@ -70,7 +71,13 @@ export default function RegisterPage() {
       if (!res.ok) {
         setError(data.error || "Erro ao criar conta.");
       } else {
-        router.push('/login?registered=true');
+        // Auto-login após registro
+        await signIn('credentials', {
+          email: formData.email,
+          password: formData.senha,
+          redirect: false,
+        });
+        router.push('/onboarding');
       }
     } catch (err) {
       setError("Ocorreu um erro inesperado.");
