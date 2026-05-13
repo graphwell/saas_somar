@@ -7,9 +7,16 @@ export interface NormalizedMessage {
   provider: 'ultramsg' | 'wasender';
 }
 
+export interface InstanceStatus {
+  connected: boolean;   // true = WhatsApp escaneado e pronto
+  qrCode?: string;      // base64 PNG para exibir ao usuário
+  status: 'connected' | 'qrCode' | 'loading' | 'disconnected' | 'error';
+}
+
 export interface ProviderAdapter {
   normalizeWebhook(payload: any, instanceId: string): NormalizedMessage | null;
   sendMessage(to: string, message: string, token: string, instanceId: string): Promise<boolean>;
+  getInstanceStatus(token: string, instanceId: string): Promise<InstanceStatus>;
 }
 
 export class UltraMsgAdapter implements ProviderAdapter {
@@ -38,17 +45,39 @@ export class UltraMsgAdapter implements ProviderAdapter {
         to: to.includes('@') ? to : `${to}@c.us`,
         body: message
       });
-
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: data.toString()
       });
-
       return response.ok;
     } catch (e) {
       console.error('[UltraMsg] Error sending message:', e);
       return false;
+    }
+  }
+
+  async getInstanceStatus(token: string, instanceId: string): Promise<InstanceStatus> {
+    try {
+      const [statusRes, qrRes] = await Promise.all([
+        fetch(`https://api.ultramsg.com/${instanceId}/instance/status?token=${token}`),
+        fetch(`https://api.ultramsg.com/${instanceId}/instance/qr?token=${token}`),
+      ]);
+
+      const statusData = await statusRes.json();
+      const qrData = await qrRes.json();
+
+      const rawStatus = statusData?.status?.accountStatus?.substatus ?? statusData?.status ?? '';
+      const connected = rawStatus === 'authenticated' || rawStatus === 'connected';
+
+      return {
+        connected,
+        status: connected ? 'connected' : qrData?.QRCode ? 'qrCode' : 'loading',
+        qrCode: qrData?.QRCode || undefined,
+      };
+    } catch (e) {
+      console.error('[UltraMsg] Status error:', e);
+      return { connected: false, status: 'error' };
     }
   }
 }
@@ -70,8 +99,7 @@ export class WasenderAdapter implements ProviderAdapter {
 
   async sendMessage(to: string, message: string, token: string, instanceId: string): Promise<boolean> {
     try {
-      const url = `https://api.wasender.com/send-message`;
-      const response = await fetch(url, {
+      const response = await fetch('https://api.wasender.com/send-message', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -80,14 +108,32 @@ export class WasenderAdapter implements ProviderAdapter {
         body: JSON.stringify({
           sessionId: instanceId,
           to: to.includes('@') ? to : `${to}@c.us`,
-          text: message
-        })
+          text: message,
+        }),
       });
-
       return response.ok;
     } catch (e) {
       console.error('[WaSender] Error sending message:', e);
       return false;
+    }
+  }
+
+  async getInstanceStatus(token: string, instanceId: string): Promise<InstanceStatus> {
+    try {
+      const res = await fetch(`https://api.wasender.com/sessions/${instanceId}`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const data = await res.json();
+      const connected = data?.status === 'CONNECTED' || data?.connected === true;
+      const qrCode = data?.qrCode || data?.QRCode || undefined;
+      return {
+        connected,
+        status: connected ? 'connected' : qrCode ? 'qrCode' : 'loading',
+        qrCode,
+      };
+    } catch (e) {
+      console.error('[WaSender] Status error:', e);
+      return { connected: false, status: 'error' };
     }
   }
 }
