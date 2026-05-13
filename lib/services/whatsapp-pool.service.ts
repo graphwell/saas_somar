@@ -26,8 +26,10 @@ export async function assignTrialInstance(userId: string) {
     data: { status: InstanceStatus.IN_USE, userId },
   });
 
-  // Verifica se pool ficou baixo após a atribuição
-  await checkAndNotifyPoolLevels();
+  // Verifica pool em background — não bloqueia nem derruba o fluxo
+  checkAndNotifyPoolLevels().catch(err =>
+    console.error('[POOL_NOTIFY_ERROR]', err)
+  );
 
   return instance;
 }
@@ -70,8 +72,10 @@ export async function migrateToPaidInstance(userId: string) {
     data: { status: InstanceStatus.IN_USE, userId },
   });
 
-  // Verifica se pool ficou baixo após a atribuição
-  await checkAndNotifyPoolLevels();
+  // Verifica pool em background — não bloqueia nem derruba o fluxo
+  checkAndNotifyPoolLevels().catch(err =>
+    console.error('[POOL_NOTIFY_ERROR]', err)
+  );
 
   return paidInstance;
 }

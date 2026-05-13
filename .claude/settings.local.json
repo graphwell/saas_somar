@@ -20,7 +20,8 @@
       "Bash(grep -v \"^$\")",
       "Bash(npx ts-node --compiler-options '{\"module\":\"CommonJS\"}' -e ' *)",
       "Bash(node *)",
-      "Bash(git commit -m 'feat: auto-assign instance when user accesses /whatsapp *)"
+      "Bash(git commit -m 'feat: auto-assign instance when user accesses /whatsapp *)",
+      "Bash(git commit -m 'fix: run pool notifications in background to prevent blocking instance assignment *)"
     ]
   }
 }
