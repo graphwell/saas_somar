@@ -19,7 +19,8 @@
       "Bash(npx ts-node -e ' *)",
       "Bash(grep -v \"^$\")",
       "Bash(npx ts-node --compiler-options '{\"module\":\"CommonJS\"}' -e ' *)",
-      "Bash(node *)"
+      "Bash(node *)",
+      "Bash(git commit -m 'feat: auto-assign instance when user accesses /whatsapp *)"
     ]
   }
 }

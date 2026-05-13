@@ -2,59 +2,92 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { assignTrialInstance } from '@/lib/services/whatsapp-pool.service';
 
 export const dynamic = 'force-dynamic';
+
+async function getOrAssignInstance(userId: string) {
+  // 1. Verifica se já tem instância
+  let instance = await prisma.whatsAppInstance.findFirst({
+    where: { userId },
+    select: { instanceKey: true, token: true, provider: true },
+  });
+
+  if (instance) return { instance, assigned: false };
+
+  // 2. Tenta atribuir automaticamente baseado no plano
+  const subscription = await prisma.subscription.findUnique({
+    where: { userId },
+    select: { planType: true },
+  });
+
+  try {
+    if (!subscription || subscription.planType === 'trial') {
+      await assignTrialInstance(userId);
+    } else {
+      const { migrateToPaidInstance } = await import('@/lib/services/whatsapp-pool.service');
+      await migrateToPaidInstance(userId);
+    }
+
+    instance = await prisma.whatsAppInstance.findFirst({
+      where: { userId },
+      select: { instanceKey: true, token: true, provider: true },
+    });
+
+    return { instance, assigned: true };
+  } catch {
+    return { instance: null, assigned: false };
+  }
+}
 
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
   const userId = (session.user as any).id;
 
-  const instance = await prisma.whatsAppInstance.findFirst({
-    where: { userId },
-    select: { instanceKey: true, token: true, provider: true },
-  });
+  const { instance } = await getOrAssignInstance(userId);
 
   if (!instance) {
-    return NextResponse.json({ error: 'Sem instância', status: 'no_instance' });
+    return NextResponse.json({ status: 'no_instance', connected: false });
   }
 
+  // Busca status + QR no provedor
   if (instance.provider === 'ULTRAMSG') {
     try {
-      // Status
-      const statusRes = await fetch(
-        `https://api.ultramsg.com/${instance.instanceKey}/instance/status?token=${instance.token}`,
-        { cache: 'no-store' }
-      );
-      const statusData = await statusRes.json();
+      const [statusRes, qrRes] = await Promise.all([
+        fetch(
+          `https://api.ultramsg.com/${instance.instanceKey}/instance/status?token=${instance.token}`,
+          { cache: 'no-store' }
+        ),
+        fetch(
+          `https://api.ultramsg.com/${instance.instanceKey}/instance/qr?token=${instance.token}`,
+          { cache: 'no-store' }
+        ),
+      ]);
 
-      // Verifica erro de autenticação
+      const statusData = await statusRes.json().catch(() => ({}));
+      const qrData = await qrRes.json().catch(() => ({}));
+
       if (!statusRes.ok || statusData?.error) {
         return NextResponse.json({
           status: 'invalid_credentials',
+          connected: false,
           error: statusData?.error ?? 'Token inválido ou instância não encontrada no UltraMsg.',
-          raw: statusData,
         });
       }
 
-      // Verifica se está conectado
       const rawStatus =
         statusData?.status?.accountStatus?.substatus ??
         statusData?.status?.accountStatus?.status ??
         statusData?.status ?? '';
 
-      const connected = ['authenticated', 'connected', 'normal'].includes(String(rawStatus).toLowerCase());
+      const connected = ['authenticated', 'connected', 'normal'].includes(
+        String(rawStatus).toLowerCase()
+      );
 
       if (connected) {
         return NextResponse.json({ status: 'connected', connected: true });
       }
-
-      // Busca QR code
-      const qrRes = await fetch(
-        `https://api.ultramsg.com/${instance.instanceKey}/instance/qr?token=${instance.token}`,
-        { cache: 'no-store' }
-      );
-      const qrData = await qrRes.json();
 
       if (qrData?.QRCode) {
         return NextResponse.json({
@@ -64,14 +97,9 @@ export async function GET() {
         });
       }
 
-      return NextResponse.json({
-        status: 'loading',
-        connected: false,
-        raw: { statusData, qrData },
-      });
+      return NextResponse.json({ status: 'loading', connected: false });
     } catch (err: any) {
-      console.error('[WHATSAPP_QR_ULTRAMSG]', err);
-      return NextResponse.json({ status: 'error', error: err.message });
+      return NextResponse.json({ status: 'error', connected: false, error: err.message });
     }
   }
 
@@ -79,16 +107,14 @@ export async function GET() {
     try {
       const res = await fetch(
         `https://api.wasender.com/sessions/${instance.instanceKey}`,
-        {
-          headers: { Authorization: `Bearer ${instance.token}` },
-          cache: 'no-store',
-        }
+        { headers: { Authorization: `Bearer ${instance.token}` }, cache: 'no-store' }
       );
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
 
       if (!res.ok || data?.error) {
         return NextResponse.json({
           status: 'invalid_credentials',
+          connected: false,
           error: data?.error ?? 'Token inválido ou sessão não encontrada no WaSender.',
         });
       }
@@ -102,10 +128,9 @@ export async function GET() {
         qrCode,
       });
     } catch (err: any) {
-      console.error('[WHATSAPP_QR_WASENDER]', err);
-      return NextResponse.json({ status: 'error', error: err.message });
+      return NextResponse.json({ status: 'error', connected: false, error: err.message });
     }
   }
 
-  return NextResponse.json({ status: 'error', error: 'Provedor não suportado.' });
+  return NextResponse.json({ status: 'error', connected: false, error: 'Provedor não suportado.' });
 }
