@@ -66,10 +66,10 @@ async function main() {
     data: {
       userId: user.id,
       name: 'Atendimento Principal',
-      provider: 'ultramsg',
+      provider: 'ULTRAMSG',
       instanceKey: 'trial_instance_01',
       token: 'token_t1',
-      status: 'available',
+      status: 'IDLE',
       agentId: agent.id,
     }
   });

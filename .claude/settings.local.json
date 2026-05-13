@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(git rm *)",
+      "Bash(git commit -m 'fix: simplify middleware matcher to avoid Edge Runtime regex incompatibility *)",
+      "Bash(git commit -m 'fix: wrap useSearchParams in Suspense on admin login page *)",
+      "Bash(git commit -m 'fix: create missing /api/cron/cleanup-instances route referenced in vercel.json *)",
+      "Bash(npm run *)",
+      "Bash(git commit -m 'fix: change cleanup-instances cron to daily — Hobby plan limit *)",
+      "Bash(npx prisma *)",
+      "Bash(git commit -m 'feat: add one-time admin setup route *)",
+      "Bash(git commit -m 'fix: remove secret requirement from setup route — open for one-time use *)",
+      "Bash(sed -i 's|^DATABASE_URL=.*|DATABASE_URL=\"postgresql://somar_user:SomarDB2025x@147.79.86.65:5432/somar_db?sslmode=disable\"|' .env)",
+      "Bash(sed -i 's|^DIRECT_URL=.*|DIRECT_URL=\"postgresql://somar_user:SomarDB2025x@147.79.86.65:5432/somar_db?sslmode=disable\"|' .env)"
+    ]
+  }
+}
