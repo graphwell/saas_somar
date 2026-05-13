@@ -32,9 +32,15 @@ export default function LoginPage() {
       });
 
       if (response?.error) {
-        setError("E-mail ou senha inválidos.");
+        // Traduz erros específicos do NextAuth
+        const msg = response.error;
+        if (msg.includes('senha') || msg.includes('Senha')) setError('Senha incorreta.');
+        else if (msg.includes('encontrado') || msg.includes('encontrada')) setError('E-mail não cadastrado. Crie uma conta.');
+        else if (msg.includes('social')) setError('Esta conta foi criada com Google. Use o botão Google para entrar.');
+        else setError('E-mail ou senha inválidos.');
+      } else if (!response?.ok) {
+        setError('Erro de autenticação. Verifique suas credenciais e tente novamente.');
       } else {
-        // Verifica o role para redirecionar corretamente
         const sessionRes = await fetch('/api/auth/session');
         const updatedSession = await sessionRes.json();
         if (updatedSession?.user?.role === 'ADMIN') {
@@ -44,8 +50,8 @@ export default function LoginPage() {
         }
         router.refresh();
       }
-    } catch (err) {
-      setError("Ocorreu um erro ao tentar entrar.");
+    } catch {
+      setError('Erro de conexão. Tente novamente.');
     } finally {
       setIsLoading(false);
     }
