@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Smartphone, CheckCircle2, AlertCircle,
   RefreshCcw, Loader2, ShieldCheck, MessageSquare,
-  Zap, Wifi, WifiOff, QrCode, XCircle,
+  Zap, Wifi, WifiOff, QrCode, XCircle, LogOut,
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -30,6 +30,7 @@ export default function WhatsAppPage() {
   const [qr, setQr] = useState<QrState>({ status: 'idle', connected: false });
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
 
   const fetchInfo = useCallback(async () => {
     setIsLoading(true);
@@ -81,8 +82,20 @@ export default function WhatsAppPage() {
     return () => clearInterval(id);
   }, [qr.status, fetchQr]);
 
-  const handleRefresh = () => {
-    fetchQr();
+  const handleRefresh = () => fetchQr();
+
+  const handleDisconnect = async () => {
+    if (!confirm('Deseja desconectar o WhatsApp atual? Um novo QR Code será gerado.')) return;
+    setIsDisconnecting(true);
+    try {
+      await fetch('/api/user/whatsapp/disconnect', { method: 'POST' });
+      setQr({ status: 'loading', connected: false });
+      setTimeout(() => fetchQr(), 2000);
+    } catch {
+      alert('Erro ao desconectar. Tente novamente.');
+    } finally {
+      setIsDisconnecting(false);
+    }
   };
 
   if (isLoading) {
@@ -239,11 +252,25 @@ export default function WhatsAppPage() {
 
             {/* Conectado */}
             {qr.connected && (
-              <div className="mb-8 bg-[#00E5A0]/5 border border-[#00E5A0]/20 rounded-2xl p-5 flex items-center gap-4">
-                <CheckCircle2 size={24} className="text-[#00E5A0] shrink-0" />
-                <div>
-                  <p className="text-white font-bold text-sm">WhatsApp ativo e respondendo</p>
-                  <p className="text-xs text-[#9CA3AF] mt-0.5">Sua IA está processando mensagens automaticamente.</p>
+              <div className="mb-8 space-y-4">
+                <div className="bg-[#00E5A0]/5 border border-[#00E5A0]/20 rounded-2xl p-5 flex items-center gap-4">
+                  <CheckCircle2 size={24} className="text-[#00E5A0] shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-white font-bold text-sm">WhatsApp ativo e respondendo</p>
+                    <p className="text-xs text-[#9CA3AF] mt-0.5">Sua IA está processando mensagens automaticamente.</p>
+                  </div>
+                </div>
+                <div className="flex justify-end">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleDisconnect}
+                    isLoading={isDisconnecting}
+                    className="text-[#EF4444] hover:bg-[#EF4444]/10 text-xs"
+                  >
+                    <LogOut size={13} className="mr-2" />
+                    Trocar número / Desconectar
+                  </Button>
                 </div>
               </div>
             )}
