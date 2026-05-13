@@ -188,6 +188,25 @@ model Message {
 }
 
 // ==========================================
+// PILAR: NOTIFICAÇÕES ADMIN
+// ==========================================
+enum NotificationType {
+  TRIAL_POOL_EMPTY      // Nenhuma instância trial disponível
+  TRIAL_POOL_LOW        // Pool trial com menos de 2 instâncias
+  PAID_POOL_EMPTY       // Nenhuma instância paga disponível
+  PAID_POOL_LOW         // Pool pago com menos de 2 instâncias
+}
+
+model AdminNotification {
+  id        String           @id @default(uuid())
+  type      NotificationType
+  message   String
+  userId    String?          // Usuário que disparou o alerta (se houver)
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+}
+
+// ==========================================
 // PILAR: OTIMIZAÇÃO E AUDITORIA (NOVO)
 // ==========================================
 model AgentResponseCache {

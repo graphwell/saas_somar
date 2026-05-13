@@ -15,7 +15,11 @@
       "Bash(git commit -m 'feat: add one-time admin setup route *)",
       "Bash(git commit -m 'fix: remove secret requirement from setup route — open for one-time use *)",
       "Bash(sed -i 's|^DATABASE_URL=.*|DATABASE_URL=\"postgresql://somar_user:SomarDB2025x@147.79.86.65:5432/somar_db?sslmode=disable\"|' .env)",
-      "Bash(sed -i 's|^DIRECT_URL=.*|DIRECT_URL=\"postgresql://somar_user:SomarDB2025x@147.79.86.65:5432/somar_db?sslmode=disable\"|' .env)"
+      "Bash(sed -i 's|^DIRECT_URL=.*|DIRECT_URL=\"postgresql://somar_user:SomarDB2025x@147.79.86.65:5432/somar_db?sslmode=disable\"|' .env)",
+      "Bash(npx ts-node -e ' *)",
+      "Bash(grep -v \"^$\")",
+      "Bash(npx ts-node --compiler-options '{\"module\":\"CommonJS\"}' -e ' *)",
+      "Bash(node *)"
     ]
   }
 }
