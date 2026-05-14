@@ -11,7 +11,7 @@ async function getOrAssignInstance(userId: string) {
   // 1. Verifica se já tem instância
   let instance = await prisma.whatsAppInstance.findFirst({
     where: { userId },
-    select: { instanceKey: true, token: true, provider: true },
+    select: { instanceKey: true, token: true, provider: true, plan: true, messageCount: true },
   });
 
   if (instance) return { instance, assigned: false };
@@ -32,7 +32,7 @@ async function getOrAssignInstance(userId: string) {
 
     instance = await prisma.whatsAppInstance.findFirst({
       where: { userId },
-      select: { instanceKey: true, token: true, provider: true },
+      select: { instanceKey: true, token: true, provider: true, plan: true, messageCount: true },
     });
 
     return { instance, assigned: true };
@@ -55,6 +55,8 @@ export async function GET() {
     return NextResponse.json({ status: 'no_instance', connected: false });
   }
 
+  const meta = { instanceKey: instance.instanceKey, provider: instance.provider, plan: instance.plan, messageCount: instance.messageCount };
+
   // Busca status + QR no provedor
   if (instance.provider === 'ULTRAMSG') {
     try {
@@ -74,6 +76,7 @@ export async function GET() {
 
       if (!statusRes.ok || statusData?.error) {
         return NextResponse.json({
+          ...meta,
           status: 'invalid_credentials',
           connected: false,
           error: statusData?.error ?? 'Token inválido ou instância não encontrada no UltraMsg.',
@@ -90,20 +93,16 @@ export async function GET() {
       );
 
       if (connected) {
-        return NextResponse.json({ status: 'connected', connected: true });
+        return NextResponse.json({ ...meta, status: 'connected', connected: true });
       }
 
       if (qrData?.QRCode) {
-        return NextResponse.json({
-          status: 'qrCode',
-          connected: false,
-          qrCode: qrData.QRCode,
-        });
+        return NextResponse.json({ ...meta, status: 'qrCode', connected: false, qrCode: qrData.QRCode });
       }
 
-      return NextResponse.json({ status: 'loading', connected: false });
+      return NextResponse.json({ ...meta, status: 'loading', connected: false });
     } catch (err: any) {
-      return NextResponse.json({ status: 'error', connected: false, error: err.message });
+      return NextResponse.json({ ...meta, status: 'error', connected: false, error: err.message });
     }
   }
 
@@ -117,6 +116,7 @@ export async function GET() {
 
       if (!res.ok || data?.error) {
         return NextResponse.json({
+          ...meta,
           status: 'invalid_credentials',
           connected: false,
           error: data?.error ?? 'Token inválido ou sessão não encontrada no WaSender.',
@@ -127,12 +127,13 @@ export async function GET() {
       const qrCode = data?.qrCode || data?.QRCode;
 
       return NextResponse.json({
+        ...meta,
         status: connected ? 'connected' : qrCode ? 'qrCode' : 'loading',
         connected,
         qrCode,
       });
     } catch (err: any) {
-      return NextResponse.json({ status: 'error', connected: false, error: err.message });
+      return NextResponse.json({ ...meta, status: 'error', connected: false, error: err.message });
     }
   }
 

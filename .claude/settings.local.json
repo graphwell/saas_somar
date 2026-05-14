@@ -25,7 +25,9 @@
       "Bash(git commit -m 'feat: add WhatsApp disconnect/reconnect button *)",
       "Bash(xargs grep *)",
       "Bash(openssl rand *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(python3 -c \"import sys,json; data=json.load\\(sys.stdin\\); [print\\(w.get\\('id'\\), w.get\\('name'\\), w.get\\('active'\\)\\) for w in data.get\\('data',[]\\)]\")",
+      "Bash(curl *)"
     ]
   }
 }
