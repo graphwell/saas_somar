@@ -58,6 +58,12 @@ export async function GET() {
   if (!session?.user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
   const userId = (session.user as any).id;
 
+  // Admins não usam instâncias WhatsApp
+  const sessionUser = session.user as any;
+  if (sessionUser?.role === 'ADMIN') {
+    return NextResponse.json({ status: 'no_instance', connected: false, reason: 'admin' });
+  }
+
   const { instance } = await getOrAssignInstance(userId);
 
   if (!instance) {

@@ -3,6 +3,10 @@ import { InstanceStatus, InstancePlan, Provider, NotificationType } from '@prism
 import { notifyAdmin, checkAndNotifyPoolLevels } from './notification.service';
 
 export async function assignTrialInstance(userId: string) {
+  // Nunca atribuir instância a admins
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+  if (user?.role === 'ADMIN') throw new Error('Admins não recebem instâncias WhatsApp.');
+
   const instance = await prisma.whatsAppInstance.findFirst({
     where: {
       status: InstanceStatus.IDLE,
