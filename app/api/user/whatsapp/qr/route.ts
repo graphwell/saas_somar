@@ -76,37 +76,33 @@ export async function GET() {
         return NextResponse.json({ ...meta, status: 'invalid_credentials', connected: false, error: statusData?.error });
       }
 
-      // O campo correto de conexão é accountStatus.status, não substatus
-      // "authenticated" = conectado | "qr" = aguardando scan | outros = loading
+      // UltraMsg statuses: "authenticated" = conectado, qualquer outro = aguardando QR
+      // "standby", "qr", "loading", "" — todos significam "ainda não conectado"
+      // Testar sempre o QR endpoint para qualquer status não-autenticado
       const accountStatus = String(statusData?.status?.accountStatus?.status ?? '').toLowerCase();
       const connected = accountStatus === 'authenticated';
-      const needsQr   = accountStatus === 'qr' || accountStatus === '' || !accountStatus;
 
       if (connected) {
         return NextResponse.json({ ...meta, status: 'connected', connected: true });
       }
 
-      if (needsQr) {
-        // QR endpoint retorna PNG binário — ler sempre como ArrayBuffer,
-        // independente do content-type retornado pelo UltraMsg
-        if (qrRes.ok) {
-          const buffer = await qrRes.arrayBuffer();
-          if (buffer.byteLength > 0) {
-            // Verifica magic bytes PNG: 0x89 0x50 0x4E 0x47 (\x89PNG)
-            const bytes = new Uint8Array(buffer);
-            const isPng = bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47;
-            if (isPng) {
-              const base64 = Buffer.from(buffer).toString('base64');
-              return NextResponse.json({ ...meta, status: 'qrCode', connected: false, qrCode: `data:image/png;base64,${base64}` });
-            }
-            // Não é PNG — tenta parsear como JSON
-            const text = Buffer.from(buffer).toString('utf8');
-            try {
-              const qrJson = JSON.parse(text);
-              const qrCode = qrJson?.QRCode ?? qrJson?.qrCode ?? qrJson?.qr ?? null;
-              if (qrCode) return NextResponse.json({ ...meta, status: 'qrCode', connected: false, qrCode });
-            } catch { /* não é JSON */ }
+      // QR endpoint retorna PNG binário — ler como ArrayBuffer independente do status
+      if (qrRes.ok) {
+        const buffer = await qrRes.arrayBuffer();
+        if (buffer.byteLength > 0) {
+          const bytes = new Uint8Array(buffer);
+          const isPng = bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47;
+          if (isPng) {
+            const base64 = Buffer.from(buffer).toString('base64');
+            return NextResponse.json({ ...meta, status: 'qrCode', connected: false, qrCode: `data:image/png;base64,${base64}` });
           }
+          // Não é PNG — tenta parsear como JSON
+          const text = Buffer.from(buffer).toString('utf8');
+          try {
+            const qrJson = JSON.parse(text);
+            const qrCode = qrJson?.QRCode ?? qrJson?.qrCode ?? qrJson?.qr ?? null;
+            if (qrCode) return NextResponse.json({ ...meta, status: 'qrCode', connected: false, qrCode });
+          } catch { /* não é JSON */ }
         }
       }
 

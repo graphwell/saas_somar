@@ -27,7 +27,8 @@
       "Bash(openssl rand *)",
       "Bash(git commit *)",
       "Bash(python3 -c \"import sys,json; data=json.load\\(sys.stdin\\); [print\\(w.get\\('id'\\), w.get\\('name'\\), w.get\\('active'\\)\\) for w in data.get\\('data',[]\\)]\")",
-      "Bash(curl *)"
+      "Bash(curl *)",
+      "Bash(NODE_TLS_REJECT_UNAUTHORIZED=0 node *)"
     ]
   }
 }
