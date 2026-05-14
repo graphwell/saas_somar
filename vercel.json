@@ -1,12 +1,1 @@
-{
-  "crons": [
-    {
-      "path": "/api/cron/reset-message-count",
-      "schedule": "0 0 * * *"
-    },
-    {
-      "path": "/api/cron/cleanup-instances",
-      "schedule": "0 1 * * *"
-    }
-  ]
-}
+{}

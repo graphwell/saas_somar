@@ -1,32 +1,26 @@
 import { NextResponse } from 'next/server';
+import { requireCron } from '@/lib/auth/requireCron';
 import { prisma } from '@/lib/prisma';
 import { InstancePlan } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
-export async function GET(request: Request) {
-  // Proteção básica para garantir que a chamada venha do sistema (Vercel Cron)
-  const authHeader = request.headers.get('authorization');
-  if (process.env.NODE_ENV === 'production' && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return new Response('Unauthorized', { status: 401 });
-  }
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+// Mantido para compatibilidade — use /api/cron/reset-messages para o cron N8N
+export async function POST(request: Request) {
+  const err = requireCron(request);
+  if (err) return err;
 
   try {
-    // Reseta o contador de todas as instâncias TRIAL
     const result = await prisma.whatsAppInstance.updateMany({
-      where: { 
-        plan: InstancePlan.TRIAL 
-      },
-      data: { 
-        messageCount: 0 
-      }
+      where: { plan: InstancePlan.TRIAL },
+      data: { messageCount: 0 },
     });
-
-    return NextResponse.json({ 
-      success: true, 
-      count: result.count,
-      resetAt: new Date().toISOString() 
-    });
-  } catch (error) {
-    console.error('[CRON_RESET_ERROR]', error);
+    logger.info('Message count reset', { count: result.count });
+    return NextResponse.json({ success: true, count: result.count, resetAt: new Date().toISOString() });
+  } catch (e) {
+    logger.error('Reset message count failed', {});
     return NextResponse.json({ error: 'Erro ao resetar contadores' }, { status: 500 });
   }
 }

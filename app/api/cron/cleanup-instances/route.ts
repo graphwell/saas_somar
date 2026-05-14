@@ -1,50 +1,35 @@
 import { NextResponse } from 'next/server';
+import { requireCron } from '@/lib/auth/requireCron';
 import { prisma } from '@/lib/prisma';
 import { InstanceStatus } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
-// Cron: a cada 2h — libera instâncias de usuários com trial expirado
-export async function GET(request: Request) {
-  const authHeader = request.headers.get('authorization');
-  if (process.env.NODE_ENV === 'production' && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return new Response('Unauthorized', { status: 401 });
-  }
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+// Mantido para compatibilidade — use /api/cron/cleanup-expired para o cron N8N
+export async function POST(request: Request) {
+  const err = requireCron(request);
+  if (err) return err;
 
   try {
-    // Busca usuários com trial expirado que ainda têm instância vinculada
-    const expiredSubscriptions = await prisma.subscription.findMany({
-      where: {
-        planType: 'trial',
-        currentPeriodEnd: { lt: new Date() },
-      },
+    const expired = await prisma.subscription.findMany({
+      where: { planType: 'trial', currentPeriodEnd: { lt: new Date() } },
       select: { userId: true },
     });
 
-    if (expiredSubscriptions.length === 0) {
-      return NextResponse.json({ success: true, released: 0 });
-    }
+    if (expired.length === 0) return NextResponse.json({ success: true, released: 0 });
 
-    const expiredUserIds = expiredSubscriptions.map(s => s.userId);
-
-    // Libera as instâncias desses usuários (volta para o pool)
+    const userIds = expired.map(s => s.userId);
     const result = await prisma.whatsAppInstance.updateMany({
-      where: {
-        userId: { in: expiredUserIds },
-        status: InstanceStatus.IN_USE,
-      },
-      data: {
-        userId: null,
-        status: InstanceStatus.IDLE,
-        messageCount: 0,
-      },
+      where: { userId: { in: userIds }, status: InstanceStatus.IN_USE },
+      data: { userId: null, status: InstanceStatus.IDLE, messageCount: 0 },
     });
 
-    return NextResponse.json({
-      success: true,
-      released: result.count,
-      ranAt: new Date().toISOString(),
-    });
-  } catch (error) {
-    console.error('[CRON_CLEANUP_ERROR]', error);
+    logger.info('Cleanup instances', { released: result.count });
+    return NextResponse.json({ success: true, released: result.count });
+  } catch (e) {
+    logger.error('Cleanup instances failed', {});
     return NextResponse.json({ error: 'Erro no cleanup' }, { status: 500 });
   }
 }
