@@ -98,19 +98,25 @@ export async function GET() {
       }
 
       if (needsQr) {
-        // QR endpoint retorna PNG binário — converter para base64 data URL
+        // QR endpoint retorna PNG binário — ler sempre como ArrayBuffer,
+        // independente do content-type retornado pelo UltraMsg
         if (qrRes.ok) {
-          const contentType = qrRes.headers.get('content-type') ?? '';
-          if (contentType.includes('image') || contentType.includes('png') || contentType.includes('octet')) {
-            const buffer = await qrRes.arrayBuffer();
-            const base64 = Buffer.from(buffer).toString('base64');
-            const qrCode = `data:image/png;base64,${base64}`;
-            return NextResponse.json({ ...meta, status: 'qrCode', connected: false, qrCode });
-          }
-          // Fallback: tenta JSON caso o endpoint mude de formato
-          const qrJson = await qrRes.json().catch(() => ({}));
-          if (qrJson?.QRCode) {
-            return NextResponse.json({ ...meta, status: 'qrCode', connected: false, qrCode: qrJson.QRCode });
+          const buffer = await qrRes.arrayBuffer();
+          if (buffer.byteLength > 0) {
+            // Verifica magic bytes PNG: 0x89 0x50 0x4E 0x47 (\x89PNG)
+            const bytes = new Uint8Array(buffer);
+            const isPng = bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47;
+            if (isPng) {
+              const base64 = Buffer.from(buffer).toString('base64');
+              return NextResponse.json({ ...meta, status: 'qrCode', connected: false, qrCode: `data:image/png;base64,${base64}` });
+            }
+            // Não é PNG — tenta parsear como JSON
+            const text = Buffer.from(buffer).toString('utf8');
+            try {
+              const qrJson = JSON.parse(text);
+              const qrCode = qrJson?.QRCode ?? qrJson?.qrCode ?? qrJson?.qr ?? null;
+              if (qrCode) return NextResponse.json({ ...meta, status: 'qrCode', connected: false, qrCode });
+            } catch { /* não é JSON */ }
           }
         }
       }

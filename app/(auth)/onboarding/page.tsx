@@ -54,7 +54,7 @@ export default function OnboardingPage() {
     if (step !== 3) return;
     setQrStatus('loading');
     fetchQr();
-    pollRef.current = setInterval(fetchQr, 8000);
+    pollRef.current = setInterval(fetchQr, 3000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);

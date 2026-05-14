@@ -94,11 +94,15 @@ export default function WhatsAppPage() {
     return stopPoll;
   }, [fetchStatus]);
 
-  // Poll APENAS quando status === 'qrCode'
+  // Poll quando status === 'qrCode' (verificar se conectou)
+  // Poll quando status === 'loading' (retentar até obter QR)
   useEffect(() => {
     stopPoll();
     if (state.status === 'qrCode') {
       pollRef.current = setInterval(fetchStatus, POLL_INTERVAL_MS);
+    } else if (state.status === 'loading') {
+      // Retry a cada 3s enquanto aguarda QR do provedor
+      pollRef.current = setInterval(fetchStatus, 3000);
     }
     return stopPoll;
   }, [state.status, fetchStatus]);
