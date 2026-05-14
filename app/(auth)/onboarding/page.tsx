@@ -1,24 +1,28 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  Building, 
-  Bot, 
-  Smartphone, 
-  ChevronRight, 
-  ChevronLeft, 
-  MapPin, 
-  Briefcase, 
-  Heart, 
+import {
+  Building,
+  Bot,
+  Smartphone,
+  ChevronRight,
+  ChevronLeft,
+  MapPin,
+  Briefcase,
+  Heart,
   Scale,
   CheckCircle2,
-  QrCode
+  QrCode,
+  Loader2,
+  Wifi,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+
+type QrStatus = 'idle' | 'loading' | 'qrCode' | 'connected' | 'no_instance' | 'error';
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -28,7 +32,32 @@ export default function OnboardingPage() {
   // Form States
   const [businessData, setBusinessData] = useState({ name: '', segment: '', location: '' });
   const [agentData, setAgentData] = useState({ name: '', tone: 'neutral', services: '' });
-  const [connectTab, setConnectTab] = useState<'now' | 'later'>('now');
+
+  // QR Code state
+  const [qrStatus, setQrStatus] = useState<QrStatus>('idle');
+  const [qrCode, setQrCode] = useState<string | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const fetchQr = async () => {
+    try {
+      const res = await fetch('/api/user/whatsapp/qr');
+      const data = await res.json();
+      setQrStatus(data.status === 'connected' ? 'connected' : data.status === 'qrCode' ? 'qrCode' : data.status === 'no_instance' ? 'no_instance' : data.status === 'loading' ? 'loading' : 'error');
+      setQrCode(data.qrCode ?? null);
+    } catch {
+      setQrStatus('error');
+    }
+  };
+
+  // Buscar QR ao entrar no passo 3
+  useEffect(() => {
+    if (step !== 3) return;
+    setQrStatus('loading');
+    fetchQr();
+    pollRef.current = setInterval(fetchQr, 8000);
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
 
   const nextStep = () => setStep(s => Math.min(s + 1, 3));
   const prevStep = () => setStep(s => Math.max(s - 1, 1));
@@ -218,24 +247,41 @@ export default function OnboardingPage() {
                 </div>
               </div>
 
-              {/* QR CODE PLACEHOLDER */}
-              <div className="flex flex-col items-center gap-6 mt-12 md:mt-0 p-8 rounded-2xl bg-white/[0.02] border border-white/5 relative group">
-                <div className="w-48 h-48 bg-white p-2 rounded-xl relative">
-                  <div className="w-full h-full bg-black flex items-center justify-center rounded-lg">
-                    <QrCode size={120} className="text-white/20" />
-                  </div>
-                  {/* Animating Scan Overlay */}
-                  <div className="absolute top-0 left-0 w-full h-[2px] bg-[#00E5A0] shadow-[0_0_10px_#00E5A0] animate-scan" />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="bg-[#0A0F1E] px-4 py-2 rounded-full border border-[#00E5A0]/20 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity">
-                      <span className="text-[10px] font-bold text-[#00E5A0]">QR CODE DEMO</span>
+              {/* QR CODE REAL */}
+              <div className="flex flex-col items-center gap-4 mt-12 md:mt-0 p-8 rounded-2xl bg-white/[0.02] border border-white/5 min-w-[220px]">
+                {qrStatus === 'connected' ? (
+                  <>
+                    <div className="w-48 h-48 bg-[#00E5A0]/10 border-2 border-[#00E5A0]/40 rounded-xl flex flex-col items-center justify-center gap-3">
+                      <Wifi size={48} className="text-[#00E5A0]" />
+                      <span className="text-xs font-bold text-[#00E5A0]">Conectado!</span>
                     </div>
+                    <div className="flex items-center gap-2 text-[#00E5A0]">
+                      <CheckCircle2 size={14} />
+                      <span className="text-xs font-bold uppercase tracking-widest">WhatsApp Ativo</span>
+                    </div>
+                  </>
+                ) : qrStatus === 'qrCode' && qrCode ? (
+                  <>
+                    <div className="bg-white p-3 rounded-xl shadow-lg">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={qrCode} alt="QR Code WhatsApp" className="w-44 h-44 object-contain" />
+                    </div>
+                    <div className="flex items-center gap-2 text-[#6C5DD3] text-xs">
+                      <Loader2 size={12} className="animate-spin" />
+                      <span>Atualizando a cada 8s...</span>
+                    </div>
+                  </>
+                ) : qrStatus === 'no_instance' ? (
+                  <div className="w-48 h-48 bg-[#F59E0B]/5 border border-[#F59E0B]/20 rounded-xl flex flex-col items-center justify-center gap-3 p-4 text-center">
+                    <QrCode size={36} className="text-[#F59E0B]" />
+                    <p className="text-xs text-[#9CA3AF] leading-relaxed">Instância sendo configurada. Conecte depois em <strong className="text-white">/whatsapp</strong>.</p>
                   </div>
-                </div>
-                <div className="flex flex-col items-center animate-pulse">
-                  <div className="w-2 h-2 bg-[#00E5A0] rounded-full mb-2"></div>
-                  <span className="text-[10px] uppercase font-bold tracking-widest text-[#00E5A0]">Aguardando conexão...</span>
-                </div>
+                ) : (
+                  <div className="w-48 h-48 bg-white/5 rounded-xl flex flex-col items-center justify-center gap-3">
+                    <Loader2 size={32} className="animate-spin text-[#6C5DD3]" />
+                    <span className="text-xs text-[#6B7280]">Carregando QR Code...</span>
+                  </div>
+                )}
               </div>
             </div>
           </Card>
