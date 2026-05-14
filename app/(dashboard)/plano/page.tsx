@@ -189,11 +189,19 @@ export default function PlanoPage() {
                   Acesse o portal de faturamento para visualizar e baixar suas faturas, atualizar seu cartão ou cancelar a assinatura.
                 </p>
               </div>
-              <a href="/api/checkout/portal" target="_blank" rel="noopener noreferrer">
-                <Button variant="ghost" size="sm" className="text-[10px] uppercase font-bold tracking-widest gap-2">
-                  Abrir Portal Stripe <ExternalLink size={12} />
-                </Button>
-              </a>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-[10px] uppercase font-bold tracking-widest gap-2"
+                onClick={async () => {
+                  const res = await fetch('/api/stripe/portal', { method: 'POST' });
+                  const { url, error } = await res.json();
+                  if (url) window.location.href = url;
+                  else alert(error ?? 'Erro ao abrir portal');
+                }}
+              >
+                Abrir Portal Stripe <ExternalLink size={12} />
+              </Button>
             </div>
           </Card>
         </div>

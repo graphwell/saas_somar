@@ -1,6 +1,7 @@
 import React from 'react';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
+import { TrialBannerWrapper } from '@/components/TrialBannerWrapper';
 
 interface PageLayoutProps {
   children: React.ReactNode;
@@ -14,6 +15,7 @@ export const PageLayout = ({ children, title, className = '' }: PageLayoutProps)
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <Topbar title={title} />
+        <TrialBannerWrapper />
         <main className={`flex-1 p-8 overflow-y-auto ${className}`}>
           <div className="max-w-7xl mx-auto">
             {children}

@@ -6,6 +6,7 @@ import {
   RefreshCcw, Loader2, ShieldCheck, MessageSquare,
   Zap, Wifi, WifiOff, QrCode, XCircle, LogOut,
 } from 'lucide-react';
+import { WhatsAppWaiting } from '@/components/WhatsAppWaiting';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -121,26 +122,8 @@ export default function WhatsAppPage() {
         )}
       </div>
 
-      {/* ── Sem instância ── */}
-      {qr.status === 'no_instance' && (
-        <Card className="border-[#F59E0B]/20 bg-[#F59E0B]/5">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-xl bg-[#F59E0B]/10 flex items-center justify-center shrink-0">
-              <WifiOff size={22} className="text-[#F59E0B]" />
-            </div>
-            <div>
-              <h3 className="font-bold text-white text-lg">Sem instância disponível</h3>
-              <p className="text-sm text-[#9CA3AF] mt-1 leading-relaxed">
-                No momento não há instâncias WhatsApp disponíveis. Nossa equipe foi notificada
-                e irá configurar uma linha para você em breve.
-              </p>
-              <p className="text-xs text-[#F59E0B] mt-3 font-medium">
-                ⏳ Aguardando liberação pela equipe Somar.IA
-              </p>
-            </div>
-          </div>
-        </Card>
-      )}
+      {/* ── Sem instância — fila de espera ── */}
+      {qr.status === 'no_instance' && <WhatsAppWaiting />}
 
       {/* ── Credenciais inválidas ── */}
       {qr.status === 'invalid_credentials' && (
