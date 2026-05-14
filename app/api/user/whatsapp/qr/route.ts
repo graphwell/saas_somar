@@ -101,6 +101,26 @@ export async function GET() {
         String(rawStatus).toLowerCase()
       );
 
+      // Instância conectada mas usuário nunca usou (messageCount === 0):
+      // a sessão pertence a número anterior — desconecta e gera QR fresco
+      if (connected && instance.messageCount === 0) {
+        await fetch(
+          `https://api.ultramsg.com/${instance.instanceKey}/instance/logout?token=${instance.token}`,
+          { method: 'POST', cache: 'no-store' }
+        ).catch(() => {});
+        // Aguarda o provedor processar o logout
+        await new Promise(r => setTimeout(r, 3000));
+        // Busca QR após logout
+        const freshQr = await fetch(
+          `https://api.ultramsg.com/${instance.instanceKey}/instance/qr?token=${instance.token}`,
+          { cache: 'no-store' }
+        ).then(r => r.json()).catch(() => ({}));
+        if (freshQr?.QRCode) {
+          return NextResponse.json({ ...meta, status: 'qrCode', connected: false, qrCode: freshQr.QRCode });
+        }
+        return NextResponse.json({ ...meta, status: 'loading', connected: false });
+      }
+
       if (connected) {
         return NextResponse.json({ ...meta, status: 'connected', connected: true });
       }
@@ -134,6 +154,16 @@ export async function GET() {
 
       const connected = data?.status === 'CONNECTED' || data?.connected === true;
       const qrCode = data?.qrCode || data?.QRCode;
+
+      // Sessão anterior detectada sem uso — desconecta para gerar QR fresco
+      if (connected && instance.messageCount === 0) {
+        await fetch(`https://api.wasender.com/sessions/${instance.instanceKey}/disconnect`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${instance.token}` },
+        }).catch(() => {});
+        await new Promise(r => setTimeout(r, 3000));
+        return NextResponse.json({ ...meta, status: 'loading', connected: false });
+      }
 
       return NextResponse.json({
         ...meta,
