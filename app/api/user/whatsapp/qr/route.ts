@@ -75,64 +75,44 @@ export async function GET() {
   // Busca status + QR no provedor
   if (instance.provider === 'ULTRAMSG') {
     try {
+      // Busca status (JSON) e QR (PNG binário) em paralelo
       const [statusRes, qrRes] = await Promise.all([
-        fetch(
-          `https://api.ultramsg.com/${instance.instanceKey}/instance/status?token=${instance.token}`,
-          { cache: 'no-store' }
-        ),
-        fetch(
-          `https://api.ultramsg.com/${instance.instanceKey}/instance/qr?token=${instance.token}`,
-          { cache: 'no-store' }
-        ),
+        fetch(`https://api.ultramsg.com/${instance.instanceKey}/instance/status?token=${instance.token}`, { cache: 'no-store' }),
+        fetch(`https://api.ultramsg.com/${instance.instanceKey}/instance/qr?token=${instance.token}`, { cache: 'no-store' }),
       ]);
 
       const statusData = await statusRes.json().catch(() => ({}));
-      const qrData = await qrRes.json().catch(() => ({}));
 
       if (!statusRes.ok || statusData?.error) {
-        return NextResponse.json({
-          ...meta,
-          status: 'invalid_credentials',
-          connected: false,
-          error: statusData?.error ?? 'Token inválido ou instância não encontrada no UltraMsg.',
-        });
+        return NextResponse.json({ ...meta, status: 'invalid_credentials', connected: false, error: statusData?.error });
       }
 
-      const rawStatus =
-        statusData?.status?.accountStatus?.substatus ??
-        statusData?.status?.accountStatus?.status ??
-        statusData?.status ?? '';
-
-      const connected = ['authenticated', 'connected', 'normal'].includes(
-        String(rawStatus).toLowerCase()
-      );
-
-      // Instância conectada mas usuário nunca usou (messageCount === 0):
-      // a sessão pertence a número anterior — desconecta e gera QR fresco
-      if (connected && instance.messageCount === 0) {
-        await fetch(
-          `https://api.ultramsg.com/${instance.instanceKey}/instance/logout?token=${instance.token}`,
-          { method: 'POST', cache: 'no-store' }
-        ).catch(() => {});
-        // Aguarda o provedor processar o logout
-        await new Promise(r => setTimeout(r, 3000));
-        // Busca QR após logout
-        const freshQr = await fetch(
-          `https://api.ultramsg.com/${instance.instanceKey}/instance/qr?token=${instance.token}`,
-          { cache: 'no-store' }
-        ).then(r => r.json()).catch(() => ({}));
-        if (freshQr?.QRCode) {
-          return NextResponse.json({ ...meta, status: 'qrCode', connected: false, qrCode: freshQr.QRCode });
-        }
-        return NextResponse.json({ ...meta, status: 'loading', connected: false });
-      }
+      // O campo correto de conexão é accountStatus.status, não substatus
+      // "authenticated" = conectado | "qr" = aguardando scan | outros = loading
+      const accountStatus = String(statusData?.status?.accountStatus?.status ?? '').toLowerCase();
+      const connected = accountStatus === 'authenticated';
+      const needsQr   = accountStatus === 'qr' || accountStatus === '' || !accountStatus;
 
       if (connected) {
         return NextResponse.json({ ...meta, status: 'connected', connected: true });
       }
 
-      if (qrData?.QRCode) {
-        return NextResponse.json({ ...meta, status: 'qrCode', connected: false, qrCode: qrData.QRCode });
+      if (needsQr) {
+        // QR endpoint retorna PNG binário — converter para base64 data URL
+        if (qrRes.ok) {
+          const contentType = qrRes.headers.get('content-type') ?? '';
+          if (contentType.includes('image') || contentType.includes('png') || contentType.includes('octet')) {
+            const buffer = await qrRes.arrayBuffer();
+            const base64 = Buffer.from(buffer).toString('base64');
+            const qrCode = `data:image/png;base64,${base64}`;
+            return NextResponse.json({ ...meta, status: 'qrCode', connected: false, qrCode });
+          }
+          // Fallback: tenta JSON caso o endpoint mude de formato
+          const qrJson = await qrRes.json().catch(() => ({}));
+          if (qrJson?.QRCode) {
+            return NextResponse.json({ ...meta, status: 'qrCode', connected: false, qrCode: qrJson.QRCode });
+          }
+        }
       }
 
       return NextResponse.json({ ...meta, status: 'loading', connected: false });
