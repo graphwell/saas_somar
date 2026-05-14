@@ -137,12 +137,12 @@ export async function GET() {
       const qrCode = data?.qrCode || data?.QRCode;
 
       // Sessão anterior detectada sem uso — desconecta para gerar QR fresco
+      // O cliente já faz retry a cada 3s no status 'loading', sem sleep aqui
       if (connected && instance.messageCount === 0) {
-        await fetch(`https://api.wasender.com/sessions/${instance.instanceKey}/disconnect`, {
+        fetch(`https://api.wasender.com/sessions/${instance.instanceKey}/disconnect`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${instance.token}` },
         }).catch(() => {});
-        await new Promise(r => setTimeout(r, 3000));
         return NextResponse.json({ ...meta, status: 'loading', connected: false });
       }
 
