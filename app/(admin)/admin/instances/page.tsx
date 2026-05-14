@@ -12,7 +12,6 @@ import {
   Power,
   Copy,
   Check,
-  UserPlus,
   Search,
   AlertTriangle,
   X,
@@ -33,14 +32,6 @@ type Instance = {
   messageCount: number;
   createdAt: string;
   user: { name: string; email: string } | null;
-};
-
-type UserOption = {
-  id: string;
-  name: string;
-  email: string;
-  subscription: { planType: string; status: string } | null;
-  instances: { id: string }[];
 };
 
 type Toast = { id: number; message: string; type: 'success' | 'error' };
@@ -82,138 +73,15 @@ function ToastList({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id: numbe
   );
 }
 
-// ──────────────────────────────────────────────
-// Sub-componente: Modal de atribuição manual
-// ──────────────────────────────────────────────
-function AssignModal({
-  instance,
-  users,
-  onClose,
-  onAssign,
-}: {
-  instance: Instance;
-  users: UserOption[];
-  onClose: () => void;
-  onAssign: (instanceId: string, userId: string) => Promise<void>;
-}) {
-  const [search, setSearch] = useState('');
-  const [selected, setSelected] = useState<string>('');
-  const [submitting, setSubmitting] = useState(false);
-
-  const filtered = useMemo(
-    () =>
-      users.filter(
-        (u) =>
-          u.name.toLowerCase().includes(search.toLowerCase()) ||
-          u.email.toLowerCase().includes(search.toLowerCase()),
-      ),
-    [users, search],
-  );
-
-  const handleConfirm = async () => {
-    if (!selected) return;
-    setSubmitting(true);
-    await onAssign(instance.id, selected);
-    setSubmitting(false);
-    onClose();
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-[#111827] border border-white/10 rounded-2xl shadow-2xl w-full max-w-md mx-4 animate-slide-up">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-white/5">
-          <div>
-            <h3 className="text-white font-bold text-lg leading-none">Atribuir Instância</h3>
-            <p className="text-[#6B7280] text-xs mt-1">{instance.name} — {instance.provider}</p>
-          </div>
-          <button onClick={onClose} className="text-[#6B7280] hover:text-white transition-colors">
-            <X size={20} />
-          </button>
-        </div>
-
-        {/* Search */}
-        <div className="px-6 pt-5 pb-3">
-          <div className="relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B7280]" />
-            <input
-              className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder:text-[#6B7280] focus:outline-none focus:border-[#6C5DD3] transition-colors"
-              placeholder="Buscar usuário por nome ou e-mail..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              autoFocus
-            />
-          </div>
-        </div>
-
-        {/* User List */}
-        <div className="px-6 pb-3 max-h-[280px] overflow-y-auto space-y-1.5">
-          {filtered.length === 0 ? (
-            <p className="text-center text-[#6B7280] text-sm py-8">Nenhum usuário encontrado.</p>
-          ) : (
-            filtered.map((u) => {
-              const hasInstance = u.instances.length > 0;
-              return (
-                <button
-                  key={u.id}
-                  onClick={() => setSelected(u.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all ${
-                    selected === u.id
-                      ? 'bg-[#6C5DD3]/20 border border-[#6C5DD3]/40'
-                      : 'bg-white/[0.02] border border-transparent hover:bg-white/5'
-                  }`}
-                >
-                  <div className="w-8 h-8 rounded-full bg-[#6C5DD3]/20 flex items-center justify-center text-[#6C5DD3] font-bold text-sm shrink-0">
-                    {u.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white font-medium text-sm truncate">{u.name}</p>
-                    <p className="text-[#6B7280] text-xs truncate">{u.email}</p>
-                  </div>
-                  <div className="flex flex-col items-end gap-1 shrink-0">
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                      u.subscription?.planType === 'pro' ? 'bg-[#00E5A0]/10 text-[#00E5A0]' : 'bg-[#6C5DD3]/10 text-[#6C5DD3]'
-                    }`}>
-                      {u.subscription?.planType?.toUpperCase() ?? 'FREE'}
-                    </span>
-                    {hasInstance && (
-                      <span className="text-[10px] text-[#F59E0B]">tem instância</span>
-                    )}
-                  </div>
-                </button>
-              );
-            })
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="px-6 py-5 border-t border-white/5 flex gap-3 justify-end">
-          <Button variant="ghost" size="sm" onClick={onClose}>Cancelar</Button>
-          <Button
-            size="sm"
-            disabled={!selected}
-            isLoading={submitting}
-            onClick={handleConfirm}
-            className="bg-[#6C5DD3] hover:bg-[#5a4caf] disabled:opacity-40"
-          >
-            <UserPlus size={14} className="mr-2" /> Confirmar Atribuição
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ──────────────────────────────────────────────
 // Página principal
 // ──────────────────────────────────────────────
 export default function AdminInstancesPage() {
   const [instances, setInstances] = useState<Instance[]>([]);
-  const [users, setUsers] = useState<UserOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [assignTarget, setAssignTarget] = useState<Instance | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [search, setSearch] = useState('');
@@ -235,12 +103,8 @@ export default function AdminInstancesPage() {
   const fetchAll = async () => {
     setIsLoading(true);
     try {
-      const [instRes, usersRes] = await Promise.all([
-        fetch('/api/admin/instances'),
-        fetch('/api/admin/users'),
-      ]);
-      setInstances(await instRes.json());
-      setUsers(await usersRes.json());
+      const res = await fetch('/api/admin/instances');
+      setInstances(await res.json());
     } catch {
       addToast('Erro ao carregar dados.', 'error');
     } finally {
@@ -320,12 +184,12 @@ export default function AdminInstancesPage() {
     }
   };
 
-  const handleAction = async (id: string, action: string, extra?: Record<string, unknown>) => {
+  const handleAction = async (id: string, action: string) => {
     try {
       const res = await fetch('/api/admin/instances', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, action, ...extra }),
+        body: JSON.stringify({ id, action }),
       });
       if (res.ok) {
         const labels: Record<string, string> = {
@@ -373,14 +237,6 @@ export default function AdminInstancesPage() {
   return (
     <div className="space-y-8 animate-fade-in">
       <ToastList toasts={toasts} onRemove={(id) => setToasts((p) => p.filter((t) => t.id !== id))} />
-      {assignTarget && (
-        <AssignModal
-          instance={assignTarget}
-          users={users}
-          onClose={() => setAssignTarget(null)}
-          onAssign={async (instId, userId) => handleAction(instId, 'assign', { userId })}
-        />
-      )}
 
       {/* ── Header ── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -653,14 +509,6 @@ export default function AdminInstancesPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => setAssignTarget(inst)}
-                        className="text-[#6C5DD3] hover:bg-[#6C5DD3]/10 col-span-2"
-                      >
-                        <UserPlus size={13} className="mr-2" /> Atribuir Usuário
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
                         onClick={() => handleAction(inst.id, 'disable')}
                         className="text-[#6B7280] hover:text-white"
                       >
@@ -731,9 +579,9 @@ export default function AdminInstancesPage() {
         <div className="space-y-1">
           <h4 className="text-sm font-bold text-white">Como funciona o Pool?</h4>
           <p className="text-xs text-[#9CA3AF] leading-relaxed">
-            Instâncias <strong>TRIAL</strong> são atribuídas automaticamente a novos usuários no cadastro.
-            Instâncias <strong>PAID</strong> são usadas após conversão por assinatura via Stripe.
-            Use o botão <strong>Atribuir Usuário</strong> para vincular manualmente qualquer instância disponível.
+            A atribuição é <strong>100% automática</strong>. Quando um usuário acessa o WhatsApp,
+            o sistema busca e vincula a primeira instância <strong>DISPONÍVEL</strong> do pool.
+            Usuários sem instância entram na fila de espera e são atendidos assim que uma nova instância for adicionada.
             Mantenha sempre <strong>2+ instâncias TRIAL</strong> disponíveis para novos cadastros.
           </p>
           <div className="flex gap-6 pt-2 text-xs text-[#6B7280]">
