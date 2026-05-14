@@ -3,27 +3,22 @@ import { authOptions } from './auth';
 import { prisma } from './prisma';
 import { NextResponse } from 'next/server';
 
-export async function requireAdmin() {
+export async function requireAdmin(): Promise<NextResponse | null> {
   const session = await getServerSession(authOptions);
 
-  if (!session?.user) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+  if (!session?.user?.email) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Revalida role diretamente no banco — não confia apenas no JWT
-  const userId = (session.user as any).id;
-  if (!userId) {
-    return NextResponse.json({ error: 'Sessão inválida' }, { status: 401 });
-  }
-
-  const dbUser = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { role: true },
+  // SECURITY: role validated from DB, not JWT
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { id: true, role: true },
   });
 
-  if (!dbUser || dbUser.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Acesso restrito a administradores' }, { status: 403 });
+  if (!user || user.role !== 'ADMIN') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  return null; // autorizado
+  return null;
 }

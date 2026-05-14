@@ -1,12 +1,16 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { checkMessageLimit } from '@/lib/services/whatsapp-limit.service';
+import { rateLimit } from '@/lib/rateLimit';
 
 const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || '';
 
 // POST /api/webhooks/whatsapp?provider=ULTRAMSG&instance=KEY
-// Recebe mensagens de UltraMsg e WaSender, verifica limites e repassa para o n8n
 export async function POST(request: Request) {
+  const ip = request.headers.get('x-forwarded-for') ?? 'unknown';
+  if (!rateLimit(ip, 60, 60_000)) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+  }
   try {
     const { searchParams } = new URL(request.url);
     const providerParam = (searchParams.get('provider') || '').toUpperCase(); // ULTRAMSG | WASENDER

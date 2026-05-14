@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { WhatsAppFactory } from '@/lib/whatsapp/factory';
+import { rateLimit } from '@/lib/rateLimit';
 
 export async function POST(req: Request, { params }: { params: Promise<{ instanceId: string }> }) {
+  const ip = req.headers.get('x-forwarded-for') ?? 'unknown';
+  if (!rateLimit(ip, 60, 60_000)) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+  }
   try {
     const { instanceId } = await params;
 
