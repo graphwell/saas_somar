@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { assignTrialInstance } from '@/lib/services/whatsapp-pool.service';
+import { addToWaitingQueue } from '@/lib/services/instanceService';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,6 +37,9 @@ async function getOrAssignInstance(userId: string) {
 
     return { instance, assigned: true };
   } catch {
+    // Pool vazio — adiciona à fila de espera
+    const type = (!subscription || subscription.planType === 'trial') ? 'TRIAL' : 'PAID';
+    await addToWaitingQueue(userId, type).catch(() => {});
     return { instance: null, assigned: false };
   }
 }

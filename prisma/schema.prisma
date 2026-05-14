@@ -26,10 +26,11 @@ model User {
   accounts Account[]
 
   // Relacionamentos Multi-tenant
-  subscription Subscription?
-  instances    WhatsAppInstance[]
-  agents       Agent[]
-  customers    Customer[]
+  subscription  Subscription?
+  instances     WhatsAppInstance[]
+  agents        Agent[]
+  customers     Customer[]
+  waitingQueue  WaitingQueue?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -193,10 +194,13 @@ model Message {
 // PILAR: NOTIFICAÇÕES ADMIN
 // ==========================================
 enum NotificationType {
-  TRIAL_POOL_EMPTY      // Nenhuma instância trial disponível
-  TRIAL_POOL_LOW        // Pool trial com menos de 2 instâncias
-  PAID_POOL_EMPTY       // Nenhuma instância paga disponível
-  PAID_POOL_LOW         // Pool pago com menos de 2 instâncias
+  TRIAL_POOL_EMPTY
+  TRIAL_POOL_LOW
+  PAID_POOL_EMPTY
+  PAID_POOL_LOW
+  INSTANCE_DISCONNECTED
+  NO_PAID_INSTANCE
+  INSTANCE_READY
 }
 
 model AdminNotification {
@@ -206,6 +210,24 @@ model AdminNotification {
   userId    String?          // Usuário que disparou o alerta (se houver)
   read      Boolean          @default(false)
   createdAt DateTime         @default(now())
+}
+
+// Fila de espera quando pool está vazio
+model WaitingQueue {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   @default("TRIAL")
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+// Idempotência do webhook Stripe
+model StripeEvent {
+  id          String   @id
+  type        String
+  processedAt DateTime @default(now())
 }
 
 // ==========================================

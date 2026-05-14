@@ -45,9 +45,12 @@ export async function POST(request: Request) {
       }
     });
     
+    // Processa fila de espera em background (instância nova pode atender usuários esperando)
+    const { processWaitingQueue } = await import('@/lib/services/instanceService');
+    processWaitingQueue().catch(() => {});
+
     return NextResponse.json(instance);
   } catch (error: any) {
-    console.error('[ADMIN_INSTANCES_POST]', error);
     return NextResponse.json({ error: 'Erro ao criar instância: ' + error.message }, { status: 500 });
   }
 }
