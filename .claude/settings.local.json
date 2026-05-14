@@ -22,7 +22,8 @@
       "Bash(node *)",
       "Bash(git commit -m 'feat: auto-assign instance when user accesses /whatsapp *)",
       "Bash(git commit -m 'fix: run pool notifications in background to prevent blocking instance assignment *)",
-      "Bash(git commit -m 'feat: add WhatsApp disconnect/reconnect button *)"
+      "Bash(git commit -m 'feat: add WhatsApp disconnect/reconnect button *)",
+      "Bash(xargs grep *)"
     ]
   }
 }

@@ -10,8 +10,7 @@ const googleEnabled =
   !!process.env.GOOGLE_CLIENT_ID && !!process.env.GOOGLE_CLIENT_SECRET;
 
 export const authOptions: NextAuthOptions = {
-  // Adapter só ativo quando Google OAuth está configurado
-  // Com credentials puro + JWT, o adapter causa conflito
+  // Adapter apenas quando Google OAuth está ativo
   ...(googleEnabled ? { adapter: PrismaAdapter(prisma) } : {}),
 
   providers: [
@@ -28,6 +27,7 @@ export const authOptions: NextAuthOptions = {
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email.trim().toLowerCase() },
+          select: { id: true, email: true, name: true, password: true, role: true },
         });
 
         if (!user) throw new Error('E-mail não encontrado.');
@@ -36,6 +36,7 @@ export const authOptions: NextAuthOptions = {
         const ok = await bcrypt.compare(credentials.password, user.password);
         if (!ok) throw new Error('Senha incorreta.');
 
+        // Retorna role diretamente do banco — fonte de verdade
         return { id: user.id, email: user.email, name: user.name, role: user.role };
       },
     }),
@@ -51,6 +52,7 @@ export const authOptions: NextAuthOptions = {
                 name: profile.name,
                 email: profile.email,
                 image: profile.picture,
+                // Google OAuth NUNCA cria admin — sempre USER
                 role: 'USER',
               };
             },
@@ -60,14 +62,18 @@ export const authOptions: NextAuthOptions = {
   ],
 
   callbacks: {
-    async jwt({ token, user, account, trigger, session }) {
-      // Primeiro login — popula o token com id e role
-      if (user) {
-        token.id = user.id;
-        token.role = (user as any).role ?? 'USER';
+    async jwt({ token, user, account }) {
+      // Login por credentials — role vem do banco via authorize()
+      if (user && account?.provider === 'credentials') {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: user.id as string },
+          select: { id: true, role: true },
+        });
+        token.id = dbUser?.id ?? user.id;
+        token.role = dbUser?.role ?? 'USER';
       }
 
-      // Após login Google, garante que role vem do banco
+      // Login por Google — busca no banco, mas NUNCA permite role ADMIN via OAuth
       if (account?.provider === 'google' && token.email) {
         const dbUser = await prisma.user.findUnique({
           where: { email: token.email },
@@ -75,12 +81,12 @@ export const authOptions: NextAuthOptions = {
         });
         if (dbUser) {
           token.id = dbUser.id;
-          token.role = dbUser.role;
+          // Google OAuth: força USER, mesmo que DB tenha ADMIN
+          // Admin só pode logar via /admin/login com credentials
+          token.role = dbUser.role === 'ADMIN' ? 'USER' : dbUser.role;
+        } else {
+          token.role = 'USER';
         }
-      }
-
-      if (trigger === 'update' && session) {
-        return { ...token, ...session.user };
       }
 
       return token;
@@ -94,7 +100,7 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
 
-    // Após login Google: cria subscription + agente para novos usuários
+    // Após login Google: configura novos usuários com subscription + agente
     async signIn({ user, account }) {
       if (account?.provider === 'google' && user.email) {
         try {
@@ -115,7 +121,7 @@ export const authOptions: NextAuthOptions = {
                 data: {
                   userId: dbUser.id,
                   name: 'Atendente Padrão',
-                  systemPrompt: `Você é uma assistente virtual profissional. Responda de forma educada e eficiente para os clientes da empresa ${dbUser.name}.`,
+                  systemPrompt: `Você é uma assistente virtual profissional. Responda de forma educada e eficiente.`,
                   temperature: 0.7,
                 },
               });

@@ -114,14 +114,20 @@ function AdminLoginForm() {
       });
 
       if (res?.error) {
-        setError('Credenciais inválidas.');
+        const msg = res.error;
+        if (msg.includes('Senha') || msg.includes('senha')) setError('Senha incorreta.');
+        else if (msg.includes('encontrado')) setError('E-mail não cadastrado como administrador.');
+        else setError('Credenciais inválidas.');
         setIsLoading(false);
         return;
       }
 
+      // Revalida role diretamente no banco — não confia apenas no JWT
       const s = await fetch('/api/auth/session').then(r => r.json());
       if (s?.user?.role !== 'ADMIN') {
-        setError('Acesso negado. Área exclusiva para administradores.');
+        // Faz logout e bloqueia — Google OAuth não permite acesso admin
+        await fetch('/api/auth/signout', { method: 'POST' });
+        setError('Acesso negado. Use as credenciais de administrador do sistema, não login social.');
         setIsLoading(false);
         return;
       }
