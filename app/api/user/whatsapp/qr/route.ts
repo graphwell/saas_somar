@@ -35,6 +35,15 @@ async function getOrAssignInstance(userId: string) {
       select: { instanceKey: true, token: true, provider: true, plan: true, messageCount: true },
     });
 
+    // Desconecta sessão anterior do WhatsApp antes de entregar ao novo usuário
+    // Garante que o usuário sempre veja um QR Code fresco
+    if (instance) {
+      const { disconnectInstance } = await import('@/lib/services/whatsapp/WhatsAppService');
+      await disconnectInstance(instance as any).catch(() => {});
+      // Aguarda o provedor processar o logout antes de buscar o QR
+      await new Promise(r => setTimeout(r, 2000));
+    }
+
     return { instance, assigned: true };
   } catch {
     // Pool vazio — adiciona à fila de espera

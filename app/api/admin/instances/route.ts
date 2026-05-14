@@ -63,6 +63,15 @@ export async function PATCH(request: Request) {
     const { id, action, userId } = await request.json();
 
     if (action === 'unlink') {
+      // Desconecta o WhatsApp antes de devolver ao pool
+      const inst = await prisma.whatsAppInstance.findUnique({
+        where: { id },
+        select: { instanceKey: true, token: true, provider: true },
+      });
+      if (inst) {
+        const { disconnectInstance } = await import('@/lib/services/whatsapp/WhatsAppService');
+        await disconnectInstance(inst as any).catch(() => {});
+      }
       await prisma.whatsAppInstance.update({
         where: { id },
         data: { userId: null, status: InstanceStatus.IDLE, messageCount: 0 },
