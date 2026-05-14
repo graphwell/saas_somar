@@ -8,15 +8,14 @@ import { addToWaitingQueue } from '@/lib/services/instanceService';
 export const dynamic = 'force-dynamic';
 
 async function getOrAssignInstance(userId: string) {
-  // 1. Verifica se já tem instância
+  // 1. Já tem instância?
   let instance = await prisma.whatsAppInstance.findFirst({
     where: { userId },
     select: { instanceKey: true, token: true, provider: true, plan: true, messageCount: true },
   });
+  if (instance) return instance;
 
-  if (instance) return { instance, assigned: false };
-
-  // 2. Tenta atribuir automaticamente baseado no plano
+  // 2. Não tem — tentar atribuir do pool
   const subscription = await prisma.subscription.findUnique({
     where: { userId },
     select: { planType: true },
@@ -29,27 +28,17 @@ async function getOrAssignInstance(userId: string) {
       const { migrateToPaidInstance } = await import('@/lib/services/whatsapp-pool.service');
       await migrateToPaidInstance(userId);
     }
-
+    // Busca a instância recém-atribuída
     instance = await prisma.whatsAppInstance.findFirst({
       where: { userId },
       select: { instanceKey: true, token: true, provider: true, plan: true, messageCount: true },
     });
-
-    // Desconecta sessão anterior do WhatsApp antes de entregar ao novo usuário
-    // Garante que o usuário sempre veja um QR Code fresco
-    if (instance) {
-      const { disconnectInstance } = await import('@/lib/services/whatsapp/WhatsAppService');
-      await disconnectInstance(instance as any).catch(() => {});
-      // Aguarda o provedor processar o logout antes de buscar o QR
-      await new Promise(r => setTimeout(r, 2000));
-    }
-
-    return { instance, assigned: true };
+    return instance;
   } catch {
-    // Pool vazio — adiciona à fila de espera
+    // Pool vazio — coloca na fila de espera
     const type = (!subscription || subscription.planType === 'trial') ? 'TRIAL' : 'PAID';
-    await addToWaitingQueue(userId, type).catch(() => {});
-    return { instance: null, assigned: false };
+    addToWaitingQueue(userId, type).catch(() => {});
+    return null;
   }
 }
 
@@ -64,7 +53,7 @@ export async function GET() {
     return NextResponse.json({ status: 'no_instance', connected: false, reason: 'admin' });
   }
 
-  const { instance } = await getOrAssignInstance(userId);
+  const instance = await getOrAssignInstance(userId);
 
   if (!instance) {
     return NextResponse.json({ status: 'no_instance', connected: false });
