@@ -3,6 +3,10 @@ import { headers } from 'next/headers';
 import { getStripe } from '@/lib/stripe';
 import { prisma } from '@/lib/prisma';
 import Stripe from 'stripe';
+import { migrateTrialToPaid } from '@/lib/services/migrationService';
+import { logger } from '@/lib/logger';
+
+export const runtime = 'nodejs';
 
 export async function POST(req: Request) {
   let stripe: Stripe;
@@ -16,120 +20,113 @@ export async function POST(req: Request) {
   const signature = (await headers()).get('Stripe-Signature') as string;
 
   if (!signature) {
-    return NextResponse.json({ error: 'Stripe-Signature header ausente' }, { status: 400 });
+    return NextResponse.json({ error: 'Stripe-Signature ausente' }, { status: 400 });
   }
 
   let event: Stripe.Event;
-
   try {
-    event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET || ''
-    );
+    event = stripe.webhooks.constructEvent(body, signature, process.env.STRIPE_WEBHOOK_SECRET!);
   } catch (err: any) {
-    console.error('STRIPE_WEBHOOK_SIGNATURE_ERROR:', err.message);
-    return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
+    logger.error('Stripe webhook signature invalid', {});
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
+
+  // Idempotência — ignora eventos já processados
+  const existing = await prisma.stripeEvent.findUnique({ where: { id: event.id } });
+  if (existing) {
+    return NextResponse.json({ received: true, skipped: true });
+  }
+  await prisma.stripeEvent.create({ data: { id: event.id, type: event.type } });
 
   try {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
         const userId = session.metadata?.userId;
-        const stripeSubscriptionId = session.subscription as string;
-        const stripeCustomerId = session.customer as string;
-
         if (!userId) {
-          console.error('STRIPE_WEBHOOK: userId não encontrado no metadata da sessão', session.id);
+          logger.warn('Stripe checkout: userId missing', {});
           break;
         }
-
-        const { migrateToPaidInstance } = await import('@/lib/services/whatsapp-pool.service');
-
         await prisma.subscription.upsert({
-            where: { userId },
-            create: {
-                userId,
-                stripeCustomerId,
-                stripeSubscriptionId,
-                status: 'active',
-                planType: 'pro',
-                messagesLimit: 1000, // limite fictício pro
-                messagesUsed: 0,
-                currentPeriodStart: new Date(),
-                currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-            },
-            update: {
-                stripeCustomerId,
-                stripeSubscriptionId,
-                status: 'active',
-                planType: 'pro',
-            }
+          where: { userId },
+          create: {
+            userId,
+            stripeCustomerId: session.customer as string,
+            stripeSubscriptionId: session.subscription as string,
+            status: 'active',
+            planType: 'pro',
+            messagesLimit: 999999,
+            currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          },
+          update: {
+            stripeCustomerId: session.customer as string,
+            stripeSubscriptionId: session.subscription as string,
+            status: 'active',
+            planType: 'pro',
+          },
         });
-
-        // Migra para instância WaSender (Paid)
-        try {
-          await migrateToPaidInstance(userId);
-        } catch (migrateErr) {
-          console.warn(`STRIPE_WEBHOOK: Migração de instância falhou para ${userId}. Admin foi notificado.`);
+        const result = await migrateTrialToPaid(userId);
+        if (!result.success) {
+          logger.warn('Migration failed after checkout', { userId, reason: result.reason });
         }
-
         break;
       }
 
       case 'customer.subscription.updated': {
-        const subscription = event.data.object as Stripe.Subscription;
+        const sub = event.data.object as Stripe.Subscription;
         await prisma.subscription.update({
-          where: { stripeSubscriptionId: subscription.id },
-          data: {
-            status: subscription.status as any,
-          },
-        });
+          where: { stripeSubscriptionId: sub.id },
+          data: { status: sub.status as string },
+        }).catch(() => {});
         break;
       }
 
       case 'customer.subscription.deleted': {
-        const subscription = event.data.object as Stripe.Subscription;
+        const sub = event.data.object as Stripe.Subscription;
         await prisma.subscription.update({
-          where: { stripeSubscriptionId: subscription.id },
-          data: {
-            planType: 'trial',
-            status: 'canceled',
-            stripeSubscriptionId: null,
-          },
-        });
-        break;
-      }
-
-      case 'invoice.payment_failed': {
-        const invoice = event.data.object as Stripe.Invoice;
-        // Na versão atual do SDK, subscription fica em parent.subscription_details
-        const parent = (invoice as any).parent;
-        const subscriptionId: string | undefined =
-          parent?.subscription_details?.subscription ||
-          parent?.subscription;
-
-        if (subscriptionId) {
-          await prisma.subscription.update({
-            where: { stripeSubscriptionId: subscriptionId },
-            data: { status: 'past_due' },
+          where: { stripeSubscriptionId: sub.id },
+          data: { planType: 'trial', status: 'canceled', stripeSubscriptionId: null },
+        }).catch(() => {});
+        // Libera instância paga de volta ao pool
+        const dbSub = await prisma.subscription.findFirst({ where: { stripeCustomerId: (sub.customer as string) } });
+        if (dbSub) {
+          await prisma.whatsAppInstance.updateMany({
+            where: { userId: dbSub.userId, plan: 'PAID', status: 'IN_USE' },
+            data: { status: 'IDLE', userId: null },
           });
         }
         break;
       }
 
-      default:
-        // Ignorar eventos não mapeados — isso é intencional
+      case 'invoice.payment_failed': {
+        const invoice = event.data.object as Stripe.Invoice;
+        const subId = (invoice as any).parent?.subscription_details?.subscription
+          ?? (invoice as any).subscription as string;
+        if (subId) {
+          await prisma.subscription.update({
+            where: { stripeSubscriptionId: subId },
+            data: { status: 'past_due' },
+          }).catch(() => {});
+        }
+        await prisma.adminNotification.create({
+          data: {
+            type: 'PAID_POOL_LOW',
+            message: `Pagamento falhou para cliente Stripe: ${(invoice as any).customer_email ?? 'desconhecido'}`,
+          },
+        }).catch(() => {});
         break;
+      }
+
+      case 'customer.subscription.trial_will_end': {
+        const sub = event.data.object as Stripe.Subscription;
+        logger.info('Trial will end', { subId: sub.id });
+        break;
+      }
     }
   } catch (err) {
-    console.error(`STRIPE_WEBHOOK_HANDLER_ERROR [${event.type}]:`, err);
-    // Retornar 200 mesmo em erro de DB para Stripe não retentar indefinidamente
-    // Log o erro para investigação posterior
-    return NextResponse.json({ received: true, warning: 'Handler error — check logs' });
+    logger.error('Stripe webhook handler error', { eventType: event.type });
+    return NextResponse.json({ received: true, warning: 'Handler error' });
   }
 
   return NextResponse.json({ received: true });
 }
-
