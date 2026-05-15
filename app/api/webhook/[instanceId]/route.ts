@@ -44,6 +44,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ instanc
     if (!agent) {
       return NextResponse.json({ error: 'No agent configured for this instance' }, { status: 400 });
     }
+    if (!agent.isActive) {
+      return NextResponse.json({ status: 'ignored', reason: 'agent_inactive' });
+    }
 
     // 4. Normalize the webhook using the factory
     const adapter = WhatsAppFactory.getAdapter(instance.provider);

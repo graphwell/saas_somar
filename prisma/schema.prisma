@@ -132,6 +132,7 @@ model Agent {
   name         String // Ex: "Atendente Padrão"
   systemPrompt String @db.Text
   temperature  Float  @default(0.7)
+  isActive     Boolean @default(true)
 
   lastEditedBy String? // "USER" or "ADMIN - nome"
   lastEditedAt DateTime?

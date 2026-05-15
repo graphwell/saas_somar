@@ -51,8 +51,21 @@ export async function POST(request: Request) {
       customerName = body.pushName || 'Cliente';
     }
 
+    // Comandos do DONO via mensagem enviada por ele mesmo (#parar / #iniciar)
+    const isOwnerMsg = body.fromMe === true || body.key?.fromMe === true;
+    if (isOwnerMsg && message) {
+      const cmd = message.trim().toLowerCase();
+      const STOP  = ['#parar', '#stop', '#pausar', '#desligar'];
+      const START = ['#iniciar', '#start', '#ativar', '#ligar'];
+      if (STOP.includes(cmd) || START.includes(cmd)) {
+        const activate = START.includes(cmd);
+        await prisma.agent.updateMany({ where: { userId: instance.userId }, data: { isActive: activate } });
+        return NextResponse.json({ ok: true, command: activate ? 'started' : 'stopped' });
+      }
+    }
+
     // Ignora mensagens vazias ou enviadas pelo próprio número
-    if (!message || !from || body.fromMe === true || body.key?.fromMe === true) {
+    if (!message || !from || isOwnerMsg) {
       return NextResponse.json({ ok: true, ignored: true });
     }
 
@@ -64,11 +77,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: limitErr.message }, { status: 403 });
     }
 
-    // 4. Verifica se há agente configurado
-    const agent = instance.agent;
+    // 4. Verifica se há agente configurado e se está ativo
+    const agent = instance.agent ?? await prisma.agent.findFirst({ where: { userId: instance.userId } });
     if (!agent) {
       console.warn(`[WEBHOOK] Nenhum agente vinculado à instância ${instanceKeyParam}`);
       return NextResponse.json({ ok: false, error: 'No agent configured' }, { status: 400 });
+    }
+    if (!agent.isActive) {
+      return NextResponse.json({ ok: true, ignored: true, reason: 'agent_inactive' });
     }
 
     // 5. Repassa ao n8n com payload padronizado (inclui config do agente e token da instância)

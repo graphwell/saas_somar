@@ -24,7 +24,8 @@ export async function GET() {
     return NextResponse.json({
         prompt: config.systemPrompt,
         temperature: config.temperature,
-        name: config.name
+        name: config.name,
+        isActive: config.isActive,
     });
   } catch (error) {
     console.error('AGENT_CONFIG_GET_ERROR:', error);
@@ -78,6 +79,12 @@ export async function POST(req: Request) {
         });
     }
 
+    // Ligar o agente à instância do usuário (se ainda não ligado)
+    await prisma.whatsAppInstance.updateMany({
+        where: { userId: targetId, agentId: null },
+        data: { agentId: config.id },
+    });
+
     // Criar o log de auditoria
     await prisma.agentAuditLog.create({
         data: {
@@ -90,7 +97,8 @@ export async function POST(req: Request) {
     return NextResponse.json({
         prompt: config.systemPrompt,
         temperature: config.temperature,
-        name: config.name
+        name: config.name,
+        isActive: config.isActive,
     });
   } catch (error) {
     console.error('AGENT_CONFIG_POST_ERROR:', error);
