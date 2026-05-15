@@ -8,6 +8,7 @@ import { Mail, Lock, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
+import { StarField } from '@/components/StarField';
 
 const GoogleIcon = () => (
   <svg width="20" height="20" viewBox="0 0 18 18">
@@ -70,15 +71,24 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex bg-[#0A0F1E]">
+    <div className="min-h-screen flex bg-[#080C18] relative">
+      <StarField />
       {/* Lado Esquerdo */}
-      <div className="hidden lg:flex lg:w-[60%] relative overflow-hidden items-center justify-center p-12">
+      <div className="hidden lg:flex lg:w-[60%] relative overflow-hidden items-center justify-center p-12 z-10">
         <div className="absolute inset-0 bg-gradient-to-br from-[#00E5A0]/10 via-transparent to-[#6C5DD3]/10" />
-        <div className="absolute top-[20%] left-[20%] w-64 h-64 bg-[#00E5A0] opacity-[0.1] blur-[100px]" />
-        <div className="absolute bottom-[20%] right-[20%] w-64 h-64 bg-[#6C5DD3] opacity-[0.1] blur-[100px]" />
+        <div className="absolute top-[20%] left-[20%] w-64 h-64 bg-[#00E5A0] opacity-[0.08] blur-[100px]" />
+        <div className="absolute bottom-[20%] right-[20%] w-64 h-64 bg-[#6C5DD3] opacity-[0.08] blur-[100px]" />
         <div className="relative z-10 max-w-md">
           <Link href="/" className="mb-12 block hover:opacity-90 transition-opacity">
-            <img src="/logo.png" alt="Somar.IA" className="h-28 w-auto object-contain drop-shadow-lg" />
+            <img
+              src="/logo.png"
+              alt="Somar.IA"
+              className="h-28 w-auto object-contain"
+              style={{
+                filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.5)) drop-shadow(0 0 20px rgba(255,80,80,0.3))',
+                mixBlendMode: 'screen',
+              }}
+            />
           </Link>
           <h2 className="text-5xl font-bold text-white mb-8 leading-tight">
             Bem-vindo de <br />volta ao futuro.
@@ -100,7 +110,7 @@ export default function LoginPage() {
       </div>
 
       {/* Lado Direito */}
-      <div className="w-full lg:w-[40%] flex items-center justify-center p-6 sm:p-12">
+      <div className="w-full lg:w-[40%] flex items-center justify-center p-6 sm:p-12 relative z-10">
         <Card className="w-full max-w-md p-8 sm:p-10 border-white/5 bg-white/[0.02]">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-white mb-2">Entrar</h1>

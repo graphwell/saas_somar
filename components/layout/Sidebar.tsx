@@ -43,9 +43,33 @@ export const Sidebar = () => {
   return (
     <aside className="w-[240px] h-screen bg-[#111827] border-r border-white/5 flex flex-col shrink-0">
       {/* Logo */}
-      <div className="p-6">
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <img src="/logo.png" alt="Somar.IA" className="h-16 w-auto object-contain drop-shadow-md" />
+      <div className="relative px-5 py-4">
+        {/* Halo de brilho atrás da logo */}
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            left: '14px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            width: '72px',
+            height: '72px',
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(255,255,255,0.14) 0%, rgba(255,80,80,0.08) 45%, transparent 70%)',
+            filter: 'blur(8px)',
+            pointerEvents: 'none',
+          }}
+        />
+        <Link href="/dashboard" className="flex items-center gap-2 relative z-10">
+          <img
+            src="/logo.png"
+            alt="Somar.IA"
+            className="h-14 w-auto object-contain"
+            style={{
+              filter: 'drop-shadow(0 0 6px rgba(255,255,255,0.55)) drop-shadow(0 0 14px rgba(255,100,100,0.35))',
+              mixBlendMode: 'screen',
+            }}
+          />
         </Link>
       </div>
 
