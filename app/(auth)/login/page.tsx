@@ -79,16 +79,38 @@ export default function LoginPage() {
         <div className="absolute top-[20%] left-[20%] w-64 h-64 bg-[#00E5A0] opacity-[0.08] blur-[100px]" />
         <div className="absolute bottom-[20%] right-[20%] w-64 h-64 bg-[#6C5DD3] opacity-[0.08] blur-[100px]" />
         <div className="relative z-10 max-w-md">
-          <Link href="/" className="mb-12 block hover:opacity-90 transition-opacity">
+          <Link href="/" className="mb-12 flex items-center gap-3.5 hover:opacity-90 transition-opacity w-fit">
             <img
               src="/logo.png"
               alt="Somar.IA"
-              className="h-28 w-auto object-contain"
               style={{
-                filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.5)) drop-shadow(0 0 20px rgba(255,80,80,0.3))',
+                width: 56,
+                height: 56,
+                objectFit: 'contain',
+                filter: 'drop-shadow(0 0 10px rgba(255,255,255,0.5)) drop-shadow(0 0 24px rgba(255,80,80,0.4))',
                 mixBlendMode: 'screen',
               }}
             />
+            <div>
+              <div style={{
+                fontSize: '28px',
+                fontWeight: 800,
+                color: '#ffffff',
+                letterSpacing: '-0.5px',
+                lineHeight: 1,
+                textShadow: '0 0 20px rgba(255,255,255,0.3)',
+              }}>
+                Somar.IA
+              </div>
+              <div style={{
+                fontSize: '12px',
+                color: 'rgba(255,255,255,0.5)',
+                marginTop: '3px',
+                letterSpacing: '0.5px',
+              }}>
+                Automações Inteligentes
+              </div>
+            </div>
           </Link>
           <h2 className="text-5xl font-bold text-white mb-8 leading-tight">
             Bem-vindo de <br />volta ao futuro.
