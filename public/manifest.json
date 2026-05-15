@@ -1,0 +1,24 @@
+{
+  "name": "Somar.IA",
+  "short_name": "Somar.IA",
+  "description": "Automações Inteligentes no WhatsApp",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#080C18",
+  "theme_color": "#080C18",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

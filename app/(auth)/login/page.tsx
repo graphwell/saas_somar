@@ -71,31 +71,35 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex bg-[#080C18] relative">
+    <div className="min-h-screen flex flex-col lg:flex-row bg-[#080C18] relative">
       <StarField />
-      {/* Lado Esquerdo */}
-      <div className="hidden lg:flex lg:w-[60%] relative overflow-hidden items-center justify-center p-12 z-10">
+
+      {/* Lado Esquerdo — logo+título no mobile (compacto), full no desktop */}
+      <div className="flex lg:w-[60%] relative overflow-hidden z-10
+                      flex-col items-center justify-center px-8 py-10
+                      lg:items-start lg:px-12 lg:py-0">
         <div className="absolute inset-0 bg-gradient-to-br from-[#00E5A0]/10 via-transparent to-[#6C5DD3]/10" />
         <div className="absolute top-[20%] left-[20%] w-64 h-64 bg-[#00E5A0] opacity-[0.08] blur-[100px]" />
         <div className="absolute bottom-[20%] right-[20%] w-64 h-64 bg-[#6C5DD3] opacity-[0.08] blur-[100px]" />
-        <div className="relative z-10 max-w-md">
-          <Link href="/" className="mb-12 block hover:opacity-90 transition-opacity w-fit">
+        <div className="relative z-10 w-full max-w-md">
+          <Link href="/" className="mb-6 lg:mb-12 block hover:opacity-90 transition-opacity w-fit">
             <img
               src="/logo.png"
               alt="Somar.IA"
               style={{
-                width: 90,
-                height: 90,
+                width: 72,
+                height: 72,
                 objectFit: 'contain',
                 filter: 'drop-shadow(0 0 12px rgba(255,255,255,0.5)) drop-shadow(0 0 28px rgba(255,80,80,0.45))',
                 mixBlendMode: 'screen',
               }}
             />
           </Link>
-          <h2 className="text-5xl font-bold text-white mb-8 leading-tight">
-            Bem-vindo de <br />volta ao futuro.
+          <h2 className="text-3xl lg:text-5xl font-bold text-white mb-4 lg:mb-8 leading-tight">
+            Bem-vindo de <br className="hidden lg:block" />volta ao futuro.
           </h2>
-          <div className="space-y-6">
+          {/* Bullets — só desktop */}
+          <div className="hidden lg:block space-y-6">
             {[
               'Sua IA respondendo 24h por dia',
               'Gestão simplificada de instâncias',
@@ -111,8 +115,8 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Lado Direito */}
-      <div className="w-full lg:w-[40%] flex items-center justify-center p-6 sm:p-12 relative z-10">
+      {/* Lado Direito — formulário */}
+      <div className="flex items-center justify-center px-4 pb-10 lg:w-[40%] lg:pb-0 relative z-10 sm:px-8">
         <Card className="w-full max-w-md p-8 sm:p-10 border-white/5 bg-white/[0.02]">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-white mb-2">Entrar</h1>
