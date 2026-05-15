@@ -133,17 +133,32 @@ const TONES: { id: Tone; label: string; desc: string; icon: React.ElementType }[
   { id: 'neutral',  label: 'Neutro',   desc: 'Direto ao ponto, sem formalidades',      icon: Scale },
 ];
 
+// ── Tooltip ───────────────────────────────────────────────────────────
+function Tooltip({ text }: { text: string }) {
+  return (
+    <span className="relative group inline-flex items-center ml-1.5 cursor-help align-middle">
+      <span className="text-[#4B5563] group-hover:text-[#9CA3AF] transition-colors text-sm leading-none">ⓘ</span>
+      <span className="pointer-events-none absolute left-6 top-0 z-50 hidden group-hover:block w-64 p-3 text-xs text-[#D1D5DB] bg-[#1F2937] border border-white/10 rounded-xl shadow-2xl leading-relaxed">
+        {text}
+      </span>
+    </span>
+  );
+}
+
 // ── Componente de campo ───────────────────────────────────────────────
 function FieldBlock({
-  label, helper, value, onChange, rows, placeholder,
+  label, tooltip, helper, value, onChange, rows, placeholder,
 }: {
-  label: string; helper: string; value: string;
+  label: string; tooltip: string; helper: string; value: string;
   onChange: (v: string) => void; rows: number; placeholder: string;
 }) {
   return (
     <div className="space-y-1.5">
       <div>
-        <label className="text-sm font-semibold text-white">{label}</label>
+        <label className="text-sm font-semibold text-white inline-flex items-center">
+          {label}
+          <Tooltip text={tooltip} />
+        </label>
         <p className="text-xs text-[#6B7280] mt-0.5">{helper}</p>
       </div>
       <textarea
@@ -394,29 +409,32 @@ export default function AgentePage() {
 
               <FieldBlock
                 label="Quem é seu atendente?"
+                tooltip="Apresente seu atendente com nome, nome do seu negócio e horário de funcionamento. Essa é a primeira coisa que a IA vai 'dizer' internamente para se identificar com os clientes."
                 helper="Apresente seu atendente: nome, nome do negócio e horário de funcionamento."
                 value={identity}
                 onChange={setIdentity}
                 rows={3}
-                placeholder={"Ex: Sou a Júlia, atendente virtual da Ótica Visão Clara.\nTrabalho de segunda a sábado, das 8h às 18h."}
+                placeholder={"Ex: Sou a Júlia, atendente virtual da Ótica Visão Clara. Trabalho de segunda a sábado, das 8h às 18h."}
               />
 
               <FieldBlock
                 label="O que você vende ou oferece?"
+                tooltip="Liste seus produtos ou serviços com preços se possível. Quanto mais detalhes você colocar aqui, mais preciso o atendente será ao responder seus clientes."
                 helper="Liste seus produtos, serviços e preços. Quanto mais detalhes, melhor o atendimento."
                 value={services}
                 onChange={setServices}
                 rows={4}
-                placeholder={"Ex: Vendemos óculos de grau, óculos de sol e lentes de contato.\nFazemos exame de vista gratuito com agendamento.\nTemos promoção de armações a partir de R$ 99."}
+                placeholder={"Ex: Vendemos óculos de grau, óculos de sol e lentes de contato. Fazemos exame de vista gratuito com agendamento. Temos promoções a partir de R$ 99."}
               />
 
               <FieldBlock
                 label="Como deve agir com os clientes?"
+                tooltip="Defina as regras do seu atendente: o que ele pode prometer, como lidar com reclamações, quando transferir para um humano e qual número ou canal usar para isso."
                 helper="Regras importantes: o que pode e não pode fazer, como encaminhar casos especiais."
                 value={rules}
                 onChange={setRules}
                 rows={4}
-                placeholder={"Ex: Sempre pergunte o nome do cliente no início.\nPara pedidos de orçamento, peça o modelo do produto desejado.\nNunca prometa prazo sem consultar a loja.\nSe quiser falar com um humano, diga para ligar no (11) 99999-9999."}
+                placeholder={"Ex: Sempre pergunte o nome do cliente no início. Para orçamentos, peça o modelo desejado. Nunca prometa prazo de entrega. Se quiser falar com um humano, diga para ligar no (11) 99999-9999."}
               />
             </div>
 
