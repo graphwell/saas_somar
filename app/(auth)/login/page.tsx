@@ -84,14 +84,13 @@ export default function LoginPage() {
         <div className="relative z-10 w-full max-w-md">
           <Link href="/" className="mb-6 lg:mb-12 block hover:opacity-90 transition-opacity w-fit">
             <img
-              src="/logo.png"
+              src="/logo_branca.png"
               alt="Somar.IA"
               style={{
-                width: 72,
-                height: 72,
+                width: 160,
+                height: 46,
                 objectFit: 'contain',
-                filter: 'drop-shadow(0 0 12px rgba(255,255,255,0.5)) drop-shadow(0 0 28px rgba(255,80,80,0.45))',
-                mixBlendMode: 'screen',
+                filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.25))',
               }}
             />
           </Link>

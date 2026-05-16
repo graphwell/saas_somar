@@ -30,7 +30,8 @@
       "Bash(curl *)",
       "Bash(NODE_TLS_REJECT_UNAUTHORIZED=0 node *)",
       "Bash(grep -E \"\\\\.\\(tsx|ts\\)$\")",
-      "Bash(vercel env *)"
+      "Bash(vercel env *)",
+      "Bash(identify public/logo_branca.png)"
     ]
   }
 }

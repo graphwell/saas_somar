@@ -100,12 +100,13 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
           />
           <Link href="/dashboard" className="flex items-center gap-2 relative z-10">
             <img
-              src="/logo.png"
+              src="/logo_branca.png"
               alt="Somar.IA"
-              className="h-14 w-auto object-contain"
               style={{
-                filter: 'drop-shadow(0 0 6px rgba(255,255,255,0.55)) drop-shadow(0 0 14px rgba(255,100,100,0.35))',
-                mixBlendMode: 'screen',
+                width: 120,
+                height: 36,
+                objectFit: 'contain',
+                filter: 'drop-shadow(0 0 6px rgba(255,255,255,0.25))',
               }}
             />
           </Link>

@@ -81,17 +81,11 @@ export default function LandingPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 40 }}>
               <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
                 <Image
-                  src="/logo.png"
+                  src="/logo_branca.png"
                   alt="Somar.IA"
-                  width={44}
-                  height={44}
-                  style={{
-                    width: 44,
-                    height: 44,
-                    objectFit: 'contain',
-                    filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.4))',
-                    mixBlendMode: 'screen',
-                  }}
+                  width={140}
+                  height={40}
+                  style={{ height: 40, width: 'auto', objectFit: 'contain', filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.25))' }}
                   priority
                 />
                 <span style={{
@@ -1175,17 +1169,11 @@ export default function LandingPage() {
             {/* Logo */}
             <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
               <Image
-                src="/logo.png"
+                src="/logo_branca.png"
                 alt="Somar.IA"
-                width={40}
-                height={40}
-                style={{
-                  width: 40,
-                  height: 40,
-                  objectFit: 'contain',
-                  filter: 'drop-shadow(0 0 6px rgba(255,255,255,0.3))',
-                  mixBlendMode: 'screen',
-                }}
+                width={120}
+                height={34}
+                style={{ height: 34, width: 'auto', objectFit: 'contain', filter: 'drop-shadow(0 0 6px rgba(255,255,255,0.25))' }}
               />
               <span style={{
                 color: '#f5f5f5',
