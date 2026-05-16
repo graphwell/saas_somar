@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Bricolage_Grotesque, Inter, Instrument_Serif, Geist, Geist_Mono } from 'next/font/google'
+import { Bricolage_Grotesque, Inter, Plus_Jakarta_Sans, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import { Providers } from './providers'
 
@@ -15,18 +15,11 @@ const inter = Inter({
   variable: '--font-inter',
 })
 
-const instrumentSerif = Instrument_Serif({
+const plusJakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
-  weight: ['400'],
-  style: ['normal', 'italic'],
+  weight: ['400', '500', '600', '700', '800'],
   display: 'swap',
-  variable: '--font-instrument',
-})
-
-const geist = Geist({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-geist',
+  variable: '--font-jakarta',
 })
 
 const geistMono = Geist_Mono({
@@ -60,7 +53,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="pt-BR" className={`${bricolage.variable} ${inter.variable} ${instrumentSerif.variable} ${geist.variable} ${geistMono.variable}`}>
+    <html lang="pt-BR" className={`${bricolage.variable} ${inter.variable} ${plusJakarta.variable} ${geistMono.variable}`}>
       <body className="antialiased">
         <Providers>
           {children}

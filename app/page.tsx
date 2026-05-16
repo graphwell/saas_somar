@@ -13,8 +13,8 @@ export default function LandingPage() {
     return () => window.removeEventListener('scroll', fn);
   }, []);
 
-  const geist = { fontFamily: 'var(--font-geist), system-ui, sans-serif' };
-  const instrument = { fontFamily: 'var(--font-instrument), Georgia, serif' };
+  const geist = { fontFamily: 'var(--font-inter), system-ui, sans-serif' };
+  const instrument = { fontFamily: 'var(--font-jakarta), sans-serif' };
   const mono = { fontFamily: 'var(--font-geist-mono), monospace' };
 
   return (
@@ -33,8 +33,8 @@ export default function LandingPage() {
           50% { opacity: 0.2; }
         }
         @keyframes pulse-green {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(0,230,118,0.4); }
-          50% { box-shadow: 0 0 0 8px rgba(0,230,118,0); }
+          0%, 100% { box-shadow: 0 0 0 0 rgba(0,209,102,0.4); }
+          50% { box-shadow: 0 0 0 8px rgba(0,209,102,0); }
         }
         .msg { opacity: 0; animation: messageIn 0.5s ease forwards; }
         .msg-1 { animation-delay: 0.6s; }
@@ -49,7 +49,7 @@ export default function LandingPage() {
         .pulse-green-dot { animation: pulse-green 2s ease-in-out infinite; }
         * { box-sizing: border-box; }
         html { scroll-behavior: smooth; }
-        ::selection { background: rgba(0,230,118,0.2); }
+        ::selection { background: rgba(0,209,102,0.2); }
       `}</style>
 
       <div style={{ background: '#080808', color: '#f5f5f5', overflowX: 'hidden', ...geist }}>
@@ -79,15 +79,27 @@ export default function LandingPage() {
           }}>
             {/* Left: logo + nav links */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 40 }}>
-              <Link href="/" style={{ display: 'flex', alignItems: 'center' }}>
+              <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
                 <Image
-                  src="/Logo Soma2.png"
+                  src="/logo.png"
                   alt="Somar.IA"
-                  width={120}
-                  height={40}
-                  style={{ height: 40, width: 'auto', filter: 'brightness(0) invert(1)', opacity: 0.8 }}
+                  width={44}
+                  height={44}
+                  style={{
+                    width: 44,
+                    height: 44,
+                    objectFit: 'contain',
+                    filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.4))',
+                    mixBlendMode: 'screen',
+                  }}
                   priority
                 />
+                <span style={{
+                  color: '#f5f5f5',
+                  fontFamily: 'var(--font-jakarta), sans-serif',
+                  fontWeight: 700,
+                  fontSize: 18,
+                }}>Somar.IA</span>
               </Link>
               <div style={{ display: 'flex', gap: 28, alignItems: 'center' }} className="hidden-mobile">
                 <Link href="#como-funciona" style={{ color: '#999', fontSize: 14, textDecoration: 'none', transition: 'color 0.2s' }}
@@ -123,8 +135,8 @@ export default function LandingPage() {
               </Link>
               <Link href="/register" style={{ textDecoration: 'none' }}>
                 <button style={{
-                  background: '#00e676',
-                  border: '1px solid #00e676',
+                  background: '#00d166',
+                  border: '1px solid #00d166',
                   color: '#080808',
                   fontSize: 13,
                   fontWeight: 700,
@@ -166,7 +178,7 @@ export default function LandingPage() {
             right: '10%',
             width: 600,
             height: 600,
-            background: 'radial-gradient(circle, rgba(0,230,118,0.04) 0%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(0,209,102,0.04) 0%, transparent 70%)',
             pointerEvents: 'none',
           }} />
 
@@ -201,11 +213,11 @@ export default function LandingPage() {
                   width: 6,
                   height: 6,
                   borderRadius: '50%',
-                  background: '#00e676',
+                  background: '#00d166',
                   display: 'inline-block',
                 }} className="online-dot" />
-                <span style={{ color: '#00e676', fontWeight: 600 }}>Novo</span>
-                <span> — IA com Gemini 2.0 Flash</span>
+                <span style={{ color: '#00d166', fontWeight: 600 }}>Novo</span>
+                <span> — Atendimento automático para pequenos negócios</span>
               </span>
 
               {/* H1 */}
@@ -240,7 +252,7 @@ export default function LandingPage() {
               <div className="animate-in delay-3" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 36 }}>
                 <Link href="/register" style={{ textDecoration: 'none' }}>
                   <button style={{
-                    background: '#00e676',
+                    background: '#00d166',
                     color: '#080808',
                     border: 'none',
                     fontSize: 15,
@@ -329,7 +341,7 @@ export default function LandingPage() {
                     width: 36,
                     height: 36,
                     borderRadius: '50%',
-                    background: '#00e676',
+                    background: '#00d166',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -346,10 +358,10 @@ export default function LandingPage() {
                         width: 6,
                         height: 6,
                         borderRadius: '50%',
-                        background: '#00e676',
+                        background: '#00d166',
                         display: 'inline-block',
                       }} className="online-dot" />
-                      <span style={{ fontSize: 11, color: '#00e676', fontWeight: 600 }}>Online agora</span>
+                      <span style={{ fontSize: 11, color: '#00d166', fontWeight: 600 }}>Online agora</span>
                     </div>
                   </div>
                 </div>
@@ -380,8 +392,8 @@ export default function LandingPage() {
                   </div>
                   {/* msg-2: RIGHT */}
                   <div className="msg msg-2" style={{
-                    background: 'rgba(0,230,118,0.08)',
-                    border: '1px solid rgba(0,230,118,0.15)',
+                    background: 'rgba(0,209,102,0.08)',
+                    border: '1px solid rgba(0,209,102,0.15)',
                     borderRadius: '8px 8px 2px 8px',
                     padding: '8px 12px',
                     fontSize: 13,
@@ -406,8 +418,8 @@ export default function LandingPage() {
                   </div>
                   {/* msg-4: RIGHT */}
                   <div className="msg msg-4" style={{
-                    background: 'rgba(0,230,118,0.08)',
-                    border: '1px solid rgba(0,230,118,0.15)',
+                    background: 'rgba(0,209,102,0.08)',
+                    border: '1px solid rgba(0,209,102,0.15)',
                     borderRadius: '8px 8px 2px 8px',
                     padding: '8px 12px',
                     fontSize: 13,
@@ -446,7 +458,7 @@ export default function LandingPage() {
                   <button style={{
                     width: 34,
                     height: 34,
-                    background: '#00e676',
+                    background: '#00d166',
                     border: 'none',
                     borderRadius: 6,
                     cursor: 'pointer',
@@ -465,11 +477,11 @@ export default function LandingPage() {
                   bottom: -14,
                   right: 20,
                   background: '#111',
-                  border: '1px solid rgba(0,230,118,0.3)',
+                  border: '1px solid rgba(0,209,102,0.3)',
                   borderRadius: 20,
                   padding: '5px 12px',
                   fontSize: 11,
-                  color: '#00e676',
+                  color: '#00d166',
                   fontWeight: 700,
                   display: 'flex',
                   alignItems: 'center',
@@ -510,7 +522,7 @@ export default function LandingPage() {
               flexWrap: 'wrap',
               opacity: 0.3,
             }}>
-              {['WhatsApp', 'Gemini', 'Stripe', 'N8N', 'Notion', 'Slack'].map(name => (
+              {['WhatsApp', 'Google', 'Stripe', 'Instagram'].map(name => (
                 <span key={name} style={{
                   fontSize: 15,
                   fontWeight: 700,
@@ -560,7 +572,7 @@ export default function LandingPage() {
                 left: '16.6%',
                 right: '16.6%',
                 height: 1,
-                borderTop: '1px dashed rgba(0,230,118,0.2)',
+                borderTop: '1px dashed rgba(0,209,102,0.2)',
                 pointerEvents: 'none',
               }} />
 
@@ -590,7 +602,7 @@ export default function LandingPage() {
                     ...mono,
                     fontSize: 80,
                     fontWeight: 700,
-                    color: '#00e676',
+                    color: '#00d166',
                     lineHeight: 1,
                     marginBottom: 24,
                     letterSpacing: '-0.04em',
@@ -653,7 +665,7 @@ export default function LandingPage() {
                     width: 36,
                     height: 36,
                     borderRadius: '50%',
-                    background: '#00e676',
+                    background: '#00d166',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -664,8 +676,8 @@ export default function LandingPage() {
                   <div>
                     <div style={{ fontSize: 14, fontWeight: 600, color: '#f5f5f5' }}>Barbearia Premium</div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#00e676', display: 'inline-block' }} className="online-dot" />
-                      <span style={{ fontSize: 11, color: '#00e676', fontWeight: 600 }}>Online agora</span>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#00d166', display: 'inline-block' }} className="online-dot" />
+                      <span style={{ fontSize: 11, color: '#00d166', fontWeight: 600 }}>Online agora</span>
                     </div>
                   </div>
                 </div>
@@ -683,13 +695,13 @@ export default function LandingPage() {
                   <div style={{ background: '#1a1a1a', border: '1px solid #1f1f1f', borderRadius: '8px 8px 8px 2px', padding: '8px 12px', fontSize: 13, color: '#f5f5f5', maxWidth: '80%', alignSelf: 'flex-start' }}>
                     Oi! Quero agendar um corte
                   </div>
-                  <div style={{ background: 'rgba(0,230,118,0.08)', border: '1px solid rgba(0,230,118,0.15)', borderRadius: '8px 8px 2px 8px', padding: '8px 12px', fontSize: 13, color: '#f5f5f5', maxWidth: '80%', alignSelf: 'flex-end' }}>
+                  <div style={{ background: 'rgba(0,209,102,0.08)', border: '1px solid rgba(0,209,102,0.15)', borderRadius: '8px 8px 2px 8px', padding: '8px 12px', fontSize: 13, color: '#f5f5f5', maxWidth: '80%', alignSelf: 'flex-end' }}>
                     Olá! Temos horários hoje às 14h e 16h ✅ Qual prefere?
                   </div>
                   <div style={{ background: '#1a1a1a', border: '1px solid #1f1f1f', borderRadius: '8px 8px 8px 2px', padding: '8px 12px', fontSize: 13, color: '#f5f5f5', maxWidth: '80%', alignSelf: 'flex-start' }}>
                     14h por favor!
                   </div>
-                  <div style={{ background: 'rgba(0,230,118,0.08)', border: '1px solid rgba(0,230,118,0.15)', borderRadius: '8px 8px 2px 8px', padding: '8px 12px', fontSize: 13, color: '#f5f5f5', maxWidth: '80%', alignSelf: 'flex-end' }}>
+                  <div style={{ background: 'rgba(0,209,102,0.08)', border: '1px solid rgba(0,209,102,0.15)', borderRadius: '8px 8px 2px 8px', padding: '8px 12px', fontSize: 13, color: '#f5f5f5', maxWidth: '80%', alignSelf: 'flex-end' }}>
                     Perfeito! Agendado para hoje às 14h 🎉 Qual seu nome?
                   </div>
                 </div>
@@ -698,7 +710,7 @@ export default function LandingPage() {
                   <div style={{ flex: 1, background: '#0d0d0d', border: '1px solid #1f1f1f', borderRadius: 6, height: 34, padding: '0 12px', display: 'flex', alignItems: 'center', fontSize: 12, color: '#444', ...geist }}>
                     Mensagem...
                   </div>
-                  <button style={{ width: 34, height: 34, background: '#00e676', border: 'none', borderRadius: 6, cursor: 'pointer', color: '#080808', fontSize: 16, flexShrink: 0 }}>→</button>
+                  <button style={{ width: 34, height: 34, background: '#00d166', border: 'none', borderRadius: 6, cursor: 'pointer', color: '#080808', fontSize: 16, flexShrink: 0 }}>→</button>
                 </div>
               </div>
             </div>
@@ -706,7 +718,7 @@ export default function LandingPage() {
             {/* Right: metric cards */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {[
-                { value: '↓ 80%', label: 'atendimentos manuais', accent: '#00e676' },
+                { value: '↓ 80%', label: 'atendimentos manuais', accent: '#00d166' },
                 { value: '+ 45%', label: 'conversão de leads', accent: '#f5f5f5' },
                 { value: '− 12h', label: 'por semana na recepção', accent: '#666' },
               ].map(metric => (
@@ -785,7 +797,7 @@ export default function LandingPage() {
               ].map(t => (
                 <div key={t.name} style={{
                   border: '1px solid #1f1f1f',
-                  borderTop: '2px solid #00e676',
+                  borderTop: '2px solid #00d166',
                   background: '#111',
                   borderRadius: 8,
                   padding: 24,
@@ -827,7 +839,7 @@ export default function LandingPage() {
                   </p>
                   <div style={{
                     fontSize: 12,
-                    color: '#00e676',
+                    color: '#00d166',
                     fontWeight: 700,
                     ...mono,
                     paddingTop: 12,
@@ -903,7 +915,7 @@ export default function LandingPage() {
                     position: 'absolute',
                     top: -18,
                     right: -4,
-                    background: '#00e676',
+                    background: '#00d166',
                     color: '#080808',
                     fontSize: 9,
                     fontWeight: 800,
@@ -945,7 +957,7 @@ export default function LandingPage() {
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {['100 mensagens/mês', '1 número WhatsApp', 'IA básica'].map(f => (
                     <li key={f} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: '#999', ...geist }}>
-                      <span style={{ color: '#00e676', fontSize: 12 }}>✓</span> {f}
+                      <span style={{ color: '#00d166', fontSize: 12 }}>✓</span> {f}
                     </li>
                   ))}
                 </ul>
@@ -972,14 +984,14 @@ export default function LandingPage() {
 
               {/* PRO — highlighted */}
               <div style={{
-                border: '1px solid #00e676',
+                border: '1px solid #00d166',
                 background: '#111',
                 borderRadius: 8,
                 padding: 28,
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 24,
-                boxShadow: '0 0 30px rgba(0,230,118,0.08)',
+                boxShadow: '0 0 30px rgba(0,209,102,0.08)',
                 position: 'relative',
               }}>
                 {/* Badge */}
@@ -988,7 +1000,7 @@ export default function LandingPage() {
                   top: -12,
                   left: '50%',
                   transform: 'translateX(-50%)',
-                  background: '#00e676',
+                  background: '#00d166',
                   color: '#080808',
                   fontSize: 10,
                   fontWeight: 800,
@@ -1002,7 +1014,7 @@ export default function LandingPage() {
                   Mais popular
                 </div>
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#00e676', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8, ...mono }}>PRO</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#00d166', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8, ...mono }}>PRO</div>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
                     <span style={{ fontSize: 13, color: '#666', ...mono }}>R$</span>
                     <span style={{ fontSize: 48, fontWeight: 700, color: '#f5f5f5', lineHeight: 1, ...mono }}>
@@ -1020,7 +1032,7 @@ export default function LandingPage() {
                     'Suporte prioritário',
                   ].map(f => (
                     <li key={f} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: '#f5f5f5', ...geist }}>
-                      <span style={{ color: '#00e676', fontSize: 12 }}>✓</span> {f}
+                      <span style={{ color: '#00d166', fontSize: 12 }}>✓</span> {f}
                     </li>
                   ))}
                 </ul>
@@ -1028,7 +1040,7 @@ export default function LandingPage() {
                   <button style={{
                     width: '100%',
                     padding: '10px 0',
-                    background: '#00e676',
+                    background: '#00d166',
                     border: 'none',
                     borderRadius: 6,
                     color: '#080808',
@@ -1062,9 +1074,9 @@ export default function LandingPage() {
                   </div>
                 </div>
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {['Tudo do Pro', 'Múltiplos números', 'API', 'Customer Success'].map(f => (
+                  {['Tudo do Pro', 'Múltiplos números', 'Conexão com outros sistemas', 'Gerente de conta dedicado'].map(f => (
                     <li key={f} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: '#999', ...geist }}>
-                      <span style={{ color: '#00e676', fontSize: 12 }}>✓</span> {f}
+                      <span style={{ color: '#00d166', fontSize: 12 }}>✓</span> {f}
                     </li>
                   ))}
                 </ul>
@@ -1118,7 +1130,7 @@ export default function LandingPage() {
             </p>
             <Link href="/register" style={{ textDecoration: 'none' }}>
               <button style={{
-                background: '#00e676',
+                background: '#00d166',
                 color: '#080808',
                 border: 'none',
                 fontSize: 16,
@@ -1161,14 +1173,26 @@ export default function LandingPage() {
             gap: 24,
           }}>
             {/* Logo */}
-            <Link href="/" style={{ display: 'flex', alignItems: 'center' }}>
+            <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
               <Image
-                src="/Logo Soma2.png"
+                src="/logo.png"
                 alt="Somar.IA"
-                width={100}
-                height={32}
-                style={{ height: 32, width: 'auto', filter: 'brightness(0) invert(1)', opacity: 0.5 }}
+                width={40}
+                height={40}
+                style={{
+                  width: 40,
+                  height: 40,
+                  objectFit: 'contain',
+                  filter: 'drop-shadow(0 0 6px rgba(255,255,255,0.3))',
+                  mixBlendMode: 'screen',
+                }}
               />
+              <span style={{
+                color: '#f5f5f5',
+                fontFamily: 'var(--font-jakarta), sans-serif',
+                fontWeight: 600,
+                fontSize: 16,
+              }}>Somar.IA</span>
             </Link>
 
             {/* Nav links */}
